@@ -45,9 +45,6 @@ htb-md-/
 ├── Thanatos_HTB_artificial_Writeup.mdd
 └── README.md ← You are here
 
-yaml
-Copy
-Edit
 
 ---
 
@@ -62,7 +59,7 @@ Edit
 ## 👨‍💻 About Me
 
 **Mridul Chamoli**  
-🎓 B.Tech CSE | 🛡️ ISC2 Certified | 🔍 Cybersecurity & CTF Enthusiast  
+🎓 B.Tech CSE | Comptia Security + Certified | 🛡️ ISC2 Certified | 🔍 Cybersecurity & CTF Enthusiast 
 🔗 GitHub: [@mridulchamoli93](https://github.com/mridulchamoli93)
 
 ---
