@@ -1,4 +1,4 @@
-# HTB: Outbound – Walkthrough
+# Thanatos HTB: Outbound – Writeup
 
 **Machine IP**: `10.10.11.77`  
 **Author**: Mridul Chamoli  
