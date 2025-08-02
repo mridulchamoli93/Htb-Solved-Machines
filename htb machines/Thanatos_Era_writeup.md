@@ -88,7 +88,7 @@ cat ./nocturnal_database/nocturnal_database.db | base64
 |----------|----------------------------------------|------------------------|
 | admin    | d725aeba143f575736b07e045d8ceebb       | N/A                    |
 | amanda   | df8b20aa0c935023f99ea58358fb63c4       | N/A                    |
-| tobias   | 55c82b1ccd55ab219b3b109b07d5061d       | slowmotionapocalypse  |
+| tobias   | 55c82b1ccd55ab219b3b109b07d5061d       | """""""""""""""""""    |
 | kavi     | f38cde1654b39fea2bd4f72f1ae4cdda       | kavi                   |
 
 ## SSH Access
@@ -97,7 +97,7 @@ Used Tobias' credentials to log in via SSH:
 
 ```bash
 ssh tobias@nocturnal.htb
-# password: slowmotionapocalypse
+# password: '''''''''''''''''''
 ```
 
 ## Privilege Escalation
@@ -125,7 +125,7 @@ http://localhost:9999
 
 Login with:
 - **Username:** admin
-- **Password:** slowmotionapocalypse
+- **Password:** ''''''''''''''''''''
 
 ### Exploiting ISPConfig
 
