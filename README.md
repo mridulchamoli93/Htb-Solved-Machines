@@ -7,10 +7,9 @@ Welcome to the collection of my **Hack The Box machine walkthroughs**. This fold
 ## 🗂️ Machine Writeups Included
 | 🔐 Machine Name | 🧱 Difficulty | ⚙️ Techniques Covered | 📄 Writeup |
 |----------------|---------------|------------------------|------------|
-| **Outbound**   | Easy          | Nmap, Nuclei, CVE-2025-49113 (Roundcube RCE), MySQL extraction, 3DES decryption, CVE-2025-27591 (Below arbitrary write) | [Thanatos_HTB_Outbound_Writeup.md](Thanatos_HTB_Outbound_Writeup.md) |
-| **Artificial** | Easy          | Directory brute force, Login panel analysis, Custom script analysis, Reverse shell, Local enumeration | [Thanatos_HTB_artificial_Writeup.mdd](Thanatos_HTB_artificial_Writeup.md) |
-| **Era**        | Easy          | Nmap, Gobuster, IDOR, Command Injection Bypass, Base64 DB Exfil, Local Port Forwarding, CVE-2023-46818 (ISPConfig RCE) | [Thanatos_HTB_Era_Writeup.md](Thanatos_HTB_Era_Writeup.md) |
-
+| **Outbound**   | Easy          | Nmap, Nuclei, CVE-2025-49113 (Roundcube RCE), MySQL extraction, 3DES decryption, CVE-2025-27591 (Below arbitrary write) | [Thanatos_HTB_Outbound_Writeup.md](htb%20machines/Thanatos_HTB_Outbound_Writeup.md) |
+| **Artificial** | Easy          | Directory brute force, Login panel analysis, Custom script analysis, Reverse shell, Local enumeration | [Thanatos_HTB_artificial_Writeup.md](htb%20machines/Thanatos_HTB_artificial_Writeup.md) |
+| **Era**        | Medium        | Nmap, Gobuster, IDOR, Command Injection Bypass, Base64 DB Exfil, Local Port Forwarding, CVE-2023-46818 (ISPConfig RCE) | [Thanatos_HTB_Era_Writeup.md](htb%20machines/Thanatos_HTB_Era_Writeup.md) |
 
 ---
 
