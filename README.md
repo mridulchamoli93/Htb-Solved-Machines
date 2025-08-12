@@ -10,7 +10,8 @@ Welcome to the collection of my **Hack The Box machine walkthroughs**. This fold
 | **Outbound**   | Easy          | Nmap, Nuclei scanning, CVE-2025-49113 Roundcube RCE, MySQL credential extraction, 3DES decryption, CVE-2025-27591 symlink privilege escalation | [Thanatos_HTB_Outbound_Writeup.md](htb%20machines/Thanatos_HTB_Outbound_Writeup.md) |
 | **Artificial** | Easy          | HTTP enumeration, custom script exploitation, reverse shell via web upload, local enumeration | [Thanatos_HTB_Artificial_Writeup.md](htb%20machines/Thanatos_HTB_artificial_Writeup.md) |
 | **Nocturnal**  | Easy          | Nmap, virtual host discovery, insecure file upload + command injection, SQLite user dump, ISPConfig RCE via local port forwarding | [Thanatos_HTB_Nocturnal_Writeup.md](htb%20machines/Thanatos_HTB_Nocturnal_writeup.md) |
-| **Era**        | Medium        | Nmap, virtual host enumeration, IDOR to retrieve backup, SSRF/RCE via PHP stream wrappers (`ssh2.exec`), SQLite credential extraction, admin takeover via security questions, reverse shell, privilege escalation via group-writable cron-executed binary | [Thanatos_HTB_Era_Writeup.md](htb%20machines/Thanatos_HTB_Era_writeup.md) |
+| **Era**        | Medium        | Nmap, virtual host enumeration, IDOR to retrieve backup, SSRF/RCE via PHP stream wrappers (`ssh2.exec`), SQLite credential extraction, admin takeover via security questions, reverse shell, privilege escalation via group-writable cron-executed binary | [Thanatos_HTB_Era_writeup.md](htb%20machines/Thanatos_HTB_Era_writeup.md) |
+| **Editor**     | Easy          | Nmap, XWiki enumeration, CVE-2024-31982 Groovy script injection RCE, reverse shell, credential harvesting from config files, SSH access, privilege escalation via `ndsudo` PATH hijacking | [Thanatos_HTB_Editor_Writeup.md](htb%20machines/Thanatos_HTB_Editor_writeup.md) |
 
 
 ---
