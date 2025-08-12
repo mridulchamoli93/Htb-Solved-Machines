@@ -1,4 +1,4 @@
-# 📝 HackTheBox - Editor (Thanatos Terminal Edition)
+# 📝 HackTheBox - Editor
 
 ---
 
