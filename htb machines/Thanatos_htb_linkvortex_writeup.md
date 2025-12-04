@@ -252,8 +252,8 @@ This shows the importance of never executing user-controlled variables as comman
 
 ## Flags
 
-* `user.txt` – `0402838a9be288cc226d41135b2b1116`
-* `root.txt` – `f80b952dd37c2fe8416352d50b5ad6ca`
+* `user.txt` – `0402838a9be288cc226d************`
+* `root.txt` – `f80b952dd37c2fe84163************`
 
 ---
 
@@ -261,6 +261,3 @@ This shows the importance of never executing user-controlled variables as comman
 
 Nice and clean box that demonstrates a realistic chain: sensitive data disclosure through misconfigured webapp uploads → credential reuse → abusing a sudo script that handles user files. Always treat uploaded archives and symlinks with suspicion, and avoid granting scripts broad sudo access.
 
-**Terminal**: `thanatos@kali:/home/thanatos/Desktop/htb/machines/linkvortex`
-
-*Happy hacking!*
