@@ -2542,3 +2542,201 @@ Implement proper authentication state management
 Avoid hardcoded credentials
 
 
+## 5.11.1 Race Condition – Duplicate Registration (TOCTOU)
+
+### Vulnerability Title
+Race Condition (Time-of-Check Time-of-Use) in User Registration
+
+---
+
+### Description
+The user registration functionality is vulnerable to a **Race Condition (TOCTOU)** vulnerability. The application checks whether an email already exists in the database and then performs an insert operation in separate steps without enforcing transactional integrity or database-level constraints.
+
+By sending multiple concurrent registration requests with the same email address, an attacker can bypass the duplicate email check and create multiple accounts using the same email.
+
+---
+
+### Affected Component
+- Feature: User Registration
+- File: `index.php`
+- Method: HTTP POST
+- Database: SQL (PDO)
+
+---
+
+### Root Cause
+The vulnerability exists due to:
+- Separate **SELECT** and **INSERT** operations
+- No database transaction or locking
+- No UNIQUE constraint on the `email` column
+- Application-level validation relied upon instead of database enforcement
+
+Relevant vulnerable logic:
+```php
+$kontrolSql = "SELECT * FROM kayit WHERE email = '$email'";
+...
+$ekleSql = "INSERT INTO kayit (ad, soyad, email, tel) VALUES ('$ad', '$soyad', '$email', '$tel')";
+Proof of Concept (PoC)
+```
+Step 1: Prepare Registration Request
+Use a single valid email address and intercept the request.
+
+text
+Copy code
+email = test@example.com
+Step 2: Trigger Race Condition
+Send multiple concurrent POST requests using the same session and same email (e.g., using curl, Burp Intruder, or Turbo Intruder).
+
+Example using parallel requests:
+
+bash
+Copy code
+```for i in {1..10}; do
+  curl -X POST http://localhost:1337/lab/race-condition/register/index.php \
+  -d "ad=test&soyad=user&email=test@example.com&tel=1234567890" &
+done
+```
+Step 3: Observe Result
+Multiple registrations are successfully created
+
+The duplicate email check is bypassed
+
+Application reports successful registration multiple times
+
+Impact
+Multiple accounts created with the same email
+
+Business logic abuse
+
+Data integrity compromise
+
+Potential abuse of registration-based features (discounts, voting, rewards)
+
+Severity
+High
+
+CVSS v3.1 Score
+7.5 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:H/A:N
+
+Remediation
+Add a UNIQUE constraint on the email column
+
+Use database transactions with proper locking
+
+Perform atomic operations (INSERT with constraint handling)
+
+Avoid relying solely on application-level validation
+
+Handle duplicate key errors securely
+<img width="1218" height="473" alt="race_condition_12" src="https://github.com/user-attachments/assets/3b04f829-444a-4f16-95e4-124d9d0f5ae1" />
+<img width="814" height="156" alt="race_condition_1" src="https://github.com/user-attachments/assets/8ae62a2f-2376-4876-aad2-085185a2e627" />
+
+## 5.11.2 Race Condition – Multiple Discount Application in Shopping Cart
+
+### Vulnerability Title
+Race Condition in Discount Code Application (Session Lock Bypass)
+
+---
+
+### Description
+The shopping cart functionality is vulnerable to a **Race Condition** that allows an attacker to apply the same discount code multiple times. The vulnerability occurs due to improper session locking and delayed session updates during discount validation.
+
+By sending multiple concurrent requests during the discount application window, an attacker can exploit the timing gap to apply the discount repeatedly, resulting in an incorrect or negative cart total.
+
+---
+
+### Affected Component
+- Feature: Shopping Cart Discount
+- File: `index.php`
+- Method: HTTP POST
+- Session Handling: PHP Sessions
+
+---
+
+### Root Cause
+The vulnerability is caused by:
+- Use of `session_write_close()` before critical validation
+- Artificial delay using `sleep(3)`
+- No atomic enforcement of single discount usage
+- Session state (`discount_applied`) checked before it is safely updated
+
+Relevant vulnerable logic:
+```php
+if (!isset($_SESSION['discount_applied']) && $coupon_code === "sbrvtn50") {
+    session_write_close();
+    sleep(3);
+    session_start();
+}
+```
+This creates a time window where multiple requests can bypass the discount_applied check.
+
+Proof of Concept (PoC)
+Step 1: Add Products to Cart
+Add any product(s) with total value ≥ 50.
+
+Example:
+
+text
+Copy code
+Product price: 100
+Step 2: Intercept Discount Request
+Intercept the discount request containing the coupon code:
+
+text
+Copy code
+coupon_code = sbrvtn50
+Step 3: Trigger Race Condition
+Send multiple concurrent POST requests with the same coupon code (using Burp Intruder, Turbo Intruder, or curl):
+
+bash
+Copy code
+```for i in {1..5}; do
+  curl -X POST http://localhost:1337/lab/race-condition/cart/index.php \
+  -d "coupon_code=sbrvtn50&apply_discount=1" &
+done
+```
+Step 4: Observe Result
+Discount value -50 is added multiple times to the cart
+
+Total amount is reduced incorrectly
+
+Cart total can reach zero or negative values
+
+Impact
+Multiple discounts applied using a single coupon
+
+Financial loss to the business
+
+Integrity violation of cart calculations
+
+Abuse of promotional logic
+
+Severity
+High
+
+CVSS v3.1 Score
+7.6 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N
+
+Remediation
+Remove artificial delays (sleep)
+
+Avoid using session_write_close() during critical operations
+
+Apply discounts using atomic server-side logic
+
+Enforce discount usage at database level
+
+Use transaction locks or mutex mechanisms
+
+Validate coupon usage per user/cart atomically
+
+<img width="873" height="862" alt="race_condition22" src="https://github.com/user-attachments/assets/8f106d89-8472-49b8-82cc-fb17bec8a5ed" />
+<img width="873" height="182" alt="race_condition21" src="https://github.com/user-attachments/assets/fe1d2e2a-3d48-40a8-bfae-d7b3f7d99c17" />
+<img width="1222" height="955" alt="race_condition2" src="https://github.com/user-attachments/assets/a569bc19-45ac-4a97-b1ec-7ac62f156bbd" />
+
