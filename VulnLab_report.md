@@ -22,7 +22,8 @@ This document contains confidential and sensitive security information related t
 
 Unauthorized disclosure, distribution, or reproduction of this report, in whole or in part, without prior written consent is strictly prohibited. Any misuse of the information contained herein may result in security risks to the application and associated systems.
 
----## 1. Executive Summary
+---
+## 1. Executive Summary
 
 This report presents the findings of a Web Application Vulnerability Assessment and Penetration Testing (VAPT) exercise conducted on a deliberately vulnerable web application used for security training and assessment purposes.
 
@@ -33,4 +34,14 @@ Testing was performed using a manual, attacker-driven methodology aligned with O
 Several of the identified issues allow attackers to bypass security controls, escalate privileges, manipulate application behavior, and perform actions on behalf of other users. If exploited in a real-world environment, these vulnerabilities could result in significant impact to the confidentiality, integrity, and availability of the application.
 
 This report provides a consolidated overview of the identified vulnerabilities, along with proof-of-concept evidence, impact analysis, and remediation guidance to support effective risk mitigation and security improvement.
+
+## 2. Engagement Overview
+
+This Web Application Vulnerability Assessment and Penetration Testing (VAPT) engagement was conducted to identify security vulnerabilities in the target web application through authorized and controlled testing.
+
+The assessment was performed using a **manual, black-box testing approach**, simulating an attacker with no prior knowledge of the application. The focus was on identifying vulnerabilities that could be practically exploited to bypass security controls, access unauthorized data, or abuse application functionality.
+
+Testing activities were limited to the defined scope and were carried out in a controlled lab environment. No denial-of-service testing or actions impacting application availability were performed.
+
+The assessment followed common web application security testing practices aligned with OWASP Top 10 categories and real-world attack techniques.
 
