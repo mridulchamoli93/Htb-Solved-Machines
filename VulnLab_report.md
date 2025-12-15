@@ -101,7 +101,7 @@ Several vulnerabilities can be combined or chained together to significantly inc
 This section provides a detailed analysis of the security vulnerabilities identified during the assessment. Each finding includes a clear description of the issue, its impact, proof-of-concept evidence, and recommended remediation steps.
 
 For clarity and consistency, vulnerabilities are grouped by category. Each vulnerability category is documented using a standardized format to ensure readability and ease of review.
-### 5.1 Cross-Site Scripting (XSS)
+### 5.1.1 Cross-Site Scripting (XSS)
 
 #### Severity
 Medium
@@ -148,7 +148,7 @@ Implement a strict Content Security Policy (CSP) to reduce XSS impact.
 
 Avoid reflecting raw user input in application responses.
 
-### 5.2 Cross-Site Scripting (XSS)
+### 5.1.2 Cross-Site Scripting (XSS)
 
 #### Severity
 High
@@ -194,7 +194,7 @@ Implement a Content Security Policy (CSP) to reduce the impact of XSS.
 
 Avoid rendering raw HTML or script content from user inputs.
 
-### 5.3 SQL Injection
+### 5.1.3 SQL Injection
 
 #### Severity
 High
@@ -226,7 +226,7 @@ An attacker supplies the following input in a vulnerable parameter:
 
 ![DOM-based XSS – JavaScript Execution](screenshots/dom2.png)
 
-### 5.4 Cross-Site Scripting (XSS)
+### 5.1.4 Cross-Site Scripting (XSS)
 
 #### Severity
 Medium
@@ -273,7 +273,7 @@ Avoid dynamically constructing HTML attributes using raw user input.
 
 Implement a strict Content Security Policy (CSP) to reduce the impact of client-side script execution.
 
-### 5.5 Cross-Site Scripting (XSS)
+### 5.1.5 Cross-Site Scripting (XSS)
 
 #### Severity
 High
@@ -320,3 +320,225 @@ Implement context-aware output encoding before rendering user input.
 Avoid dynamically inserting user-controlled data into HTML without sanitization.
 
 Deploy a Content Security Policy (CSP) to limit the execution of injected scripts
+
+### 5.1.6 Cross-Site Scripting (XSS)
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.2 (AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)
+
+#### Affected Component
+User-Agent HTTP header logged and rendered in the application interface.
+
+#### Description
+A Stored Cross-Site Scripting (XSS) vulnerability was identified in the User-Agent handling functionality. The application records the User-Agent header from incoming HTTP requests and later displays this data within an administrative or logging interface without proper output encoding.
+
+Because the User-Agent header is fully attacker-controlled, a malicious payload can be injected into the header value. Once stored, the payload is executed whenever the affected log or admin page is accessed, resulting in stored client-side code execution.
+
+#### Root Cause
+The application trusts and stores the User-Agent HTTP header without validation and renders it in the response without applying context-aware output encoding.
+
+#### Proof of Concept
+An attacker intercepts a request and modifies the `User-Agent` header to include a malicious payload:
+
+```http
+POST /lab/xss/user-agent/ HTTP/1.1
+Host: localhost:1337
+User-Agent: <script>alert(1)</script>
+Content-Type: application/x-www-form-urlencoded
+
+```
+<img width="693" height="329" alt="user_agent2" src="https://github.com/user-attachments/assets/fcbee8d9-ec1b-4538-b4da-83394a610a06" />
+<img width="1920" height="1034" alt="user_agent1" src="https://github.com/user-attachments/assets/27d6d65c-db94-4a3e-a20a-1bbe9833a77a" />
+<img width="1911" height="952" alt="user_agent" src="https://github.com/user-attachments/assets/f614c728-5ed0-4a23-98af-9d0568509526" />
+
+Impact
+
+Successful exploitation allows persistent execution of arbitrary JavaScript in the context of users viewing the stored logs or administrative interface. This can lead to session hijacking, credential theft, phishing attacks, or unauthorized actions performed on behalf of privileged users.
+
+Remediation
+
+Treat all HTTP headers as untrusted user input.
+
+Apply strict output encoding before rendering header values in any interface.
+
+Avoid rendering raw header values in administrative or log views.
+
+Implement a Content Security Policy (CSP) to reduce the impact of XSS attacks.
+### 5.1.7 Cross-Site Scripting (XSS)
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.2 (AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)
+
+#### Affected Component
+News submission and listing functionality.
+
+#### Description
+A Stored Cross-Site Scripting (XSS) vulnerability was identified in the News feature of the application. User-supplied input provided through the news submission form is stored by the application and later rendered to all users without proper validation or output encoding.
+
+The vulnerability arises due to insufficient validation of the `News Url` field, which allows the use of a `javascript:` URI scheme. When users interact with the rendered news entry, the injected JavaScript is executed in the browser.
+
+#### Root Cause
+The application fails to validate and restrict dangerous URL schemes and does not apply proper output encoding when rendering stored news entries.
+
+#### Proof of Concept
+An attacker submits a crafted news entry with a malicious JavaScript URL:
+
+```http
+POST /lab/xss/news/ HTTP/1.1
+Host: localhost:1337
+Content-Type: application/x-www-form-urlencoded
+
+title=Mridul_chamoli&link=javascript:alert(1)
+```
+<img width="1920" height="1037" alt="news_2" src="https://github.com/user-attachments/assets/a432a509-63b0-4377-a986-de3229c8a8bd" />
+<img width="1920" height="1009" alt="news_1" src="https://github.com/user-attachments/assets/72d2dcf4-54fb-4aa0-87bd-dbb558dc9202" />
+
+Successful exploitation allows an attacker to execute arbitrary JavaScript in the browser context of users interacting with the news feature. This can lead to session hijacking, credential theft, phishing attacks, forced actions, or redirection to malicious content.
+
+Remediation
+
+Enforce strict validation on URL inputs and block dangerous schemes such as javascript:.
+
+Apply context-aware output encoding when rendering user-supplied content.
+
+Implement allowlists for acceptable URL schemes (e.g., http, https).
+
+Deploy a Content Security Policy (CSP) to reduce the impact of XSS attacks.
+
+### 5.1.8 Unrestricted File Upload
+
+#### Severity
+Medium
+
+#### CVSS v3.1 Score
+6.5 (AV:N/AC:L/PR:L/UI:R/S:U/C:L/I:L/A:N)
+
+#### Affected Component
+Profile image upload functionality.
+
+#### Description
+An Unrestricted File Upload vulnerability was identified in the profile image upload feature. The application allows users to upload image files without properly validating the file content and type beyond basic client-side or extension-based checks.
+
+During testing, an SVG file containing embedded JavaScript was successfully uploaded and stored by the application. The uploaded file is later rendered as a profile image, indicating that potentially unsafe file types are accepted and handled without sufficient security controls.
+
+While the injected script may not execute in the current rendering context, accepting and storing unsanitized SVG files introduces a stored Cross-Site Scripting (XSS) risk if the rendering context changes or if the file is accessed directly.
+
+#### Root Cause
+The application fails to enforce strict server-side validation of uploaded file types and does not sanitize active content within uploaded files such as SVG images.
+
+#### Proof of Concept
+An attacker uploads a crafted SVG file containing embedded script content:
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg">
+  <script>alert('XSS')</script>
+</svg>
+```
+<img width="1920" height="938" alt="file_upload" src="https://github.com/user-attachments/assets/18a02177-9552-4a5f-94d6-28ba0f01bf5b" />
+
+Impact
+
+Improper file upload handling may allow attackers to store malicious files on the server. Depending on how the file is rendered or accessed, this could lead to stored XSS, user session compromise, or future exploitation if the file is served with an unsafe MIME type or rendered in a different context.
+
+Remediation
+
+Enforce strict server-side validation of allowed file types using MIME type checks.
+
+Disallow upload of active content formats such as SVG, or sanitize them before storage.
+
+Rename uploaded files and store them outside the web root when possible.
+
+Serve uploaded files with safe content-type headers.
+
+#### 5.2.1 Login (Authentication Bypass)
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+Administrator login functionality.
+
+#### Description
+A SQL Injection vulnerability was identified in the administrator login mechanism. The application directly incorporates user-supplied input into an authentication query without proper sanitization or parameterization.
+
+By injecting crafted SQL syntax into the username field, an attacker can manipulate the authentication logic and bypass credential verification entirely. This results in unauthorized access to the administrator account without knowing valid credentials.
+
+#### Root Cause
+The application constructs SQL authentication queries using raw user input and does not implement parameterized queries or prepared statements.
+
+#### Proof of Concept
+An attacker supplies the following payload in the username field during login:
+
+```sql
+' OR '1'='1' -- 
+```
+<img width="1920" height="678" alt="automatic_login1" src="https://github.com/user-attachments/assets/b9f7ed18-3ec9-4adc-8d17-dc5078f207ed" />
+<img width="1919" height="649" alt="automatic_login" src="https://github.com/user-attachments/assets/d7b7eb2e-120c-4892-a90a-d5b7971fd559" />
+
+Impact
+
+Successful exploitation allows an attacker to bypass authentication controls and gain full administrative access to the application. This can lead to complete compromise of sensitive data, unauthorized modifications, privilege escalation, and potential takeover of the entire application.
+
+Remediation
+
+Use parameterized queries or prepared statements for all authentication logic.
+
+Implement strict server-side input validation.
+
+Apply least-privilege principles for database accounts.
+
+Add monitoring and alerting for failed and suspicious login attempts.
+
+#### 5.2.2 Find the Passwords (Data Extraction)
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+Search functionality querying user records from the database.
+
+#### Description
+A Union-Based SQL Injection vulnerability was identified in the search functionality used to retrieve user records. The application directly incorporates user-supplied input into a SQL query without proper validation or parameterization.
+
+By injecting crafted SQL payloads, an attacker can modify the structure of the original query and retrieve sensitive data from the backend database, including usernames and plaintext or weakly protected passwords.
+
+#### Root Cause
+The application constructs SQL queries using unsanitized user input and does not implement prepared statements or parameterized queries, allowing attackers to inject arbitrary SQL commands.
+
+#### Proof of Concept
+An attacker injects a malicious payload into the search input to manipulate the SQL query:
+
+```sql
+' UNION SELECT id,username,password,4,name,surname FROM users-- -
+```
+<img width="1815" height="785" alt="Find_the_password1" src="https://github.com/user-attachments/assets/13b02902-3fd7-4727-ad5a-cbcb167fc9e5" />
+<img width="1909" height="802" alt="Find_the_password" src="https://github.com/user-attachments/assets/21a8867c-4f1e-43b4-84e3-f08c1a166687" />
+
+Impact
+
+Successful exploitation allows an attacker to extract sensitive data from the database, including usernames, email addresses, and passwords. This can lead to account takeover, privilege escalation, lateral movement, and complete compromise of the application and associated user accounts.
+
+Remediation
+
+Use parameterized queries or prepared statements for all database interactions.
+
+Apply strict server-side input validation.
+
+Restrict database user privileges to the minimum required.
+
+Avoid displaying sensitive data such as passwords in application responses.
+
+Implement monitoring and alerting for abnormal query behavior.
+
