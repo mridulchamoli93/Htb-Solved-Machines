@@ -1,4 +1,4 @@
-<img width="953" height="1035" alt="Blacklist_11" src="https://github.com/user-attachments/assets/274fdadd-5b7b-4454-b1e8-eca6760b725c" /># Web Application Vulnerability Assessment Report
+# Web Application Vulnerability Assessment Report
 
 ---
 
@@ -1954,3 +1954,591 @@ Convert this directly into SysReptor-ready format
 <img width="961" height="817" alt="changing_password_csrf" src="https://github.com/user-attachments/assets/2b231ef7-d063-418a-9066-d0e8093bd4cb" />
 <img width="958" height="945" alt="changing_password_csrf2" src="https://github.com/user-attachments/assets/1635b6ca-2c55-46c2-aa4e-2409db4345ec" />
 <img width="959" height="945" alt="changing_password_csrf1" src="https://github.com/user-attachments/assets/ccce643b-4b47-49c2-8875-d25ad87a3c99" />
+
+
+
+## 5.8.2 CSRF – Unauthorized Money Transfer
+
+### Vulnerability Description
+The money transfer feature does not implement CSRF protection, allowing attackers to initiate unauthorized fund transfers on behalf of authenticated users.
+
+### Affected Functionality
+- Money Transfer
+
+### Proof of Concept (PoC)
+The following crafted GET request was used:
+
+GET /lab/csrf/money-transfer/index.php?transfer_amount=2000&receiver=admin
+
+yaml
+Copy code
+
+If an authenticated admin user visits this URL, money is transferred without explicit consent.
+
+### Impact
+- Unauthorized financial transactions
+- Manipulation of account balances
+- Potential financial loss
+
+### Root Cause
+- No CSRF token validation
+- Sensitive operation allowed via GET request
+- Lack of user intent verification
+
+---
+<img width="959" height="862" alt="money_transfer_csrf2" src="https://github.com/user-attachments/assets/28e68e57-7bc2-44cd-892a-6bc00958d9b2" />
+<img width="350" height="447" alt="money_transfer_csrf1" src="https://github.com/user-attachments/assets/31a0d92b-e5f6-4fae-bf42-8cb1aa6774d6" />
+<img width="959" height="952" alt="money_transfer_csrf" src="https://github.com/user-attachments/assets/b2a911d4-4743-4b5a-a918-fef295fd1a5e" />
+
+## 5.8.3 CSRF – Forced Follow Action
+
+### Vulnerability Description
+The application allows users to follow accounts using a GET request without CSRF protection, enabling forced follow actions.
+
+### Affected Functionality
+- Follow User Feature
+
+### Proof of Concept (PoC)
+An attacker can trigger the follow action using:
+
+GET /lab/csrf/follow/index.php?follow=follow
+
+pgsql
+Copy code
+
+When a logged-in user accesses the link, the follow action is executed automatically.
+
+### Impact
+- Unauthorized social interactions
+- Manipulation of follower lists
+- Loss of user trust
+
+### Root Cause
+- CSRF-vulnerable GET request
+- Missing anti-CSRF tokens
+- No Origin or Referer validation
+
+---
+
+## Conclusion
+
+Multiple CSRF vulnerabilities were identified across critical application functionalities. The lack of CSRF protections allows attackers to perform sensitive actions such as password changes, money transfers, and social interactions without user consent.
+<img width="956" height="947" alt="follow1" src="https://github.com/user-attachments/assets/86c758b8-cf8e-4b32-b14e-e7d12acef8f7" />
+<img width="1920" height="954" alt="follow" src="https://github.com/user-attachments/assets/40d80d18-84b7-4ad5-9cd4-aeb174bdf455" />
+
+#### 5.9.1 Insecure Design – Admin Account Access
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.0 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+Admin account authentication and session management mechanism.
+
+#### Description
+An insecure design vulnerability was identified in the admin account functionality of the application. The application relies on a client-side controlled cookie value to determine whether a user is authenticated as an administrator.
+
+By modifying or replaying the authentication cookie in the browser, an attacker can gain unauthorized access to the admin account without providing valid admin credentials. The application does not enforce proper server-side validation of user roles or session integrity.
+
+As a result, an attacker can directly access privileged admin functionality, bypassing the intended authentication and authorization controls.
+
+#### Root Cause
+The application design incorrectly trusts client-side data (cookies) to determine user identity and privilege level. There is no secure server-side verification of the user role, nor any integrity protection (such as signing or validation) applied to sensitive session values.
+
+#### Proof of Concept
+1. Log in as a normal user.
+2. Open the browser developer tools and navigate to **Application → Cookies**.
+3. Observe the presence of a role-related or authentication cookie.
+4. Modify or reuse the admin-related cookie value.
+5. Refresh the page or navigate to the admin account endpoint.
+6. The application grants admin-level access and displays:
+<img width="1920" height="763" alt="admin_account1" src="https://github.com/user-attachments/assets/8c72517f-f975-4df1-9018-683273c507fe" />
+<img width="1920" height="470" alt="admin_account" src="https://github.com/user-attachments/assets/450f264e-2c20-4dc0-82c4-47c1070ea528" />
+#### 5.9.2 Insecure Design – Admin Account (Insecure Deserialization)
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+Authentication cookie handling and server-side object deserialization logic.
+
+#### Description
+An insecure design vulnerability was identified in the Admin Account v2 functionality where the application relies on a serialized object stored inside a client-side cookie to determine user identity and privilege level.
+
+The cookie value is URL-encoded and Base64-encoded serialized data representing a user object. By decoding the cookie, it was observed that the object contains sensitive attributes such as `username`, `password`, and an `isAdmin` flag.
+
+An attacker can modify this serialized object, change the `isAdmin` value, re-encode the payload, and resend it to the server. The application blindly deserializes the object without integrity validation and grants administrative access based on the manipulated data.
+
+This results in full administrative account takeover without valid credentials.
+
+#### Root Cause
+The application deserializes user-controlled data without validation or integrity protection. Sensitive authorization decisions are made directly from deserialized object attributes stored in client-side cookies, violating secure design principles.
+
+No cryptographic signing, server-side session validation, or role verification is enforced before granting admin privileges.
+
+#### Proof of Concept
+1. Access the application as a normal user.
+2. Open browser developer tools and navigate to **Application → Cookies**.
+3. Extract the authentication cookie value.
+4. Decode the value using URL decoding followed by Base64 decoding.
+5. The decoded payload reveals a serialized object similar to:
+
+O:4:"User":3:{
+s:8:"username";s:32:"098f6bcd4621d373cade4e832627b4f6";
+s:8:"password";s:32:"098f6bcd4621d373cade4e832627b4f6";
+s:7:"isAdmin";i:0;
+}
+
+markdown
+Copy code
+
+6. Modify the `isAdmin` value from `0` to `1`.
+7. Re-serialize, Base64-encode, and URL-encode the payload.
+8. Replace the original cookie value with the modified one.
+9. Refresh the page.
+
+The application grants administrative access and displays:
+
+Welcome Admin
+
+nginx
+Copy code
+
+This confirms successful privilege escalation via insecure deserialization.
+<img width="1920" height="685" alt="admin_account_v22" src="https://github.com/user-attachments/assets/aa1e9d40-f0bd-45b7-a279-1f1e4087d005" />
+<img width="1920" height="685" alt="admin_account_v21" src="https://github.com/user-attachments/assets/36f0be3c-ad50-4497-8175-9b6d9d1ceaf6" />
+<img width="1920" height="685" alt="admin_account_v2" src="https://github.com/user-attachments/assets/ee4b9d24-6363-4bba-a2ed-61a356355be9" />
+
+## 5.9.3 Full Privileges – Insecure Design (Insecure Deserialization & Client-Side Authorization Trust)
+
+### Vulnerability Description
+The application determines user permissions based on a **client-side serialized object stored in cookies**. This object contains authorization flags such as delete, update, and add permissions. Since the application **trusts and deserializes this data without server-side validation**, an attacker can modify the cookie to grant themselves full privileges.
+
+This represents an **insecure design flaw**, where authorization logic is delegated to client-controlled data.
+
+---
+
+### Proof of Concept (PoC)
+
+1. Intercept the authentication/authorization cookie.
+2. Decode the cookie value using:
+   - URL Decode
+   - Base64 Decode
+3. Modify the serialized object to enable all permissions:
+   - `canDelete = 1`
+   - `canUpdate = 1`
+   - `canAdd = 1`
+4. Re-encode the object (Base64 + URL Encode).
+5. Replace the cookie value in the browser and refresh the page.
+
+**Observed Result:**
+- Delete: Yes  
+- Update: Yes  
+- Add: Yes  
+- Application confirms: *“You have all the privileges”*
+
+---
+
+### Impact
+- Full privilege escalation
+- Unauthorized administrative access
+- Ability to modify or delete application data
+- Complete compromise of application integrity
+
+---
+
+### Root Cause
+- Trusting client-side authorization data
+- Insecure deserialization of user-controlled objects
+- Missing server-side permission enforcement
+
+---
+
+### CVSS 3.1 Score
+**Score:** 9.8 (Critical)  
+**Vector:**
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+
+yaml
+Copy code
+
+---
+
+### Recommendation
+- Never store authorization or permission data on the client
+- Avoid deserializing untrusted data
+- Enforce authorization strictly on the server side
+- Use secure, server-managed sessions for role validation
+- Implement integrity protection for session data (e.g., signed tokens)
+<img width="1919" height="669" alt="full_privlages1" src="https://github.com/user-attachments/assets/8999a1c7-716e-4ad0-95d5-4a34ff7e32d0" />
+<img width="1919" height="669" alt="full_privlages" src="https://github.com/user-attachments/assets/1a54a9f5-96b2-47a3-8dcb-172f997785d4" />
+
+## 5.9.4 Insecure Deserialization – Random Nick Generator
+
+### Vulnerability Title
+Insecure Deserialization Leading to Remote Code Execution (RCE)
+
+---
+
+### Description
+The **Random Nick Generator** functionality accepts serialized PHP objects from the client side and processes them using the `unserialize()` function without proper validation or integrity checks. An attacker can modify the serialized object to inject malicious properties, resulting in arbitrary command execution on the server.
+
+---
+
+### Affected Component
+- Feature: Random Nick Generator  
+- Backend Language: PHP  
+- Vulnerable Function: `unserialize()`  
+
+---
+
+### Root Cause
+The application:
+- Trusts user-supplied serialized PHP objects
+- Performs deserialization without:
+  - Class whitelisting
+  - Object integrity verification
+  - Signature validation
+- Uses attacker-controlled object properties in a dangerous sink (`system()`)
+
+---
+
+### Proof of Concept (PoC)
+
+#### Step 1: Crafted Serialized Payload
+```php
+O:4:"User":6:{
+s:8:"username";s:4:"test";
+s:2:"id";s:8:"password";
+N;
+s:16:"generatedStrings";a:2:{
+i:0;s:4:"test";
+i:1;s:14:"test1179108668";
+}
+s:7:"command";s:6:"system";
+s:8:"fileName";s:19:"randomGenerator.php";
+s:13:"fileExtension";s:3:"php";
+}
+```
+Step 2: Base64 Encoding
+The above serialized object was Base64-encoded and injected into the vulnerable parameter/cookie.
+
+Step 3: Command Execution Confirmation
+The application returned the following output in the response:
+
+text
+Copy code
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+Impact
+Remote Code Execution on the server
+
+Execution context: www-data
+
+Attacker can:
+
+Execute arbitrary system commands
+
+Read sensitive files
+
+Pivot to further compromise the server
+
+Severity
+Critical
+
+CVSS v3.1 Score
+9.8 (Critical)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+
+Remediation
+Avoid using unserialize() on untrusted data
+
+Use json_encode() / json_decode() instead
+
+Implement strict class whitelisting if deserialization is required
+
+Sign and verify serialized data before processing
+
+Disable dangerous PHP functions such as system(), exec(), shell_exec()
+
+<img width="1920" height="853" alt="random_nic1" src="https://github.com/user-attachments/assets/9b523089-54da-46e8-af4f-7c3257c87535" />
+<img width="1920" height="722" alt="random_nic" src="https://github.com/user-attachments/assets/963d8726-aba1-4edf-bf45-63b9c7c8bdab" />
+
+## 5.10.1 Broken Authentication – Brute Force Attack
+
+### Vulnerability Title
+Broken Authentication via Credential Brute Force
+
+---
+
+### Description
+The login functionality is vulnerable to a **brute force attack** due to the absence of rate limiting, account lockout mechanisms, or CAPTCHA protections. An attacker can repeatedly attempt different password combinations for a valid username until correct credentials are discovered.
+
+---
+
+### Affected Component
+- Feature: Login Authentication
+- Endpoint: `/lab/broken-authentication/brute-force/`
+- Method: HTTP POST
+
+---
+
+### Root Cause
+The application:
+- Does not enforce rate limiting on login attempts
+- Does not lock accounts after multiple failed attempts
+- Allows unlimited authentication requests from a single source
+- Returns consistent error messages for failed logins
+
+---
+
+### Proof of Concept (PoC)
+
+#### Step 1: Known Username
+```text
+admin
+Step 2: Brute Force Using Hydra
+bash
+Copy code
+hydra -l admin \
+-P /usr/share/wordlists/seclists/Passwords/Common-Credentials/10k-most-common.txt \
+localhost -s 1337 \
+http-post-form "/lab/broken-authentication/brute-force/:username=^USER^&password=^PASS^:Wrong Password" \
+-t 16
+```
+Step 3: Successful Credential Discovery
+Hydra successfully identified valid login credentials:
+
+text
+Copy code
+login: admin
+password: lifehack
+Impact
+Unauthorized access to the admin account
+
+Complete authentication bypass
+
+Potential access to sensitive data and administrative features
+
+Increased risk of privilege escalation and further compromise
+
+Severity
+High
+
+CVSS v3.1 Score
+8.8 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L
+
+Remediation
+Implement rate limiting on authentication endpoints
+
+Enforce account lockout after multiple failed login attempts
+
+Add CAPTCHA after consecutive failures
+
+Use generic error messages for authentication failures
+
+Monitor and alert on abnormal login activity
+
+Conclusion
+The application is vulnerable to Broken Authentication due to missing brute force protections. An attacker can successfully compromise privileged accounts using automated tools such as Hydra. Immediate remediation is required to secure the authentication mechanism.
+
+## 5.10.2 Insecure Design – Hardcoded Credentials Authentication Logic
+
+### Vulnerability Title
+Insecure Design Due to Hardcoded Credentials and Ineffective Authentication Logic
+
+---
+
+### Description
+The authentication mechanism is insecurely designed by using **hardcoded credentials** directly in the application source code. The login logic compares user-supplied input against fixed username and password values instead of validating credentials securely from a backend data store.
+
+This represents an **Insecure Design** issue rather than a traditional injection or brute-force vulnerability.
+
+---
+
+### Affected Component
+- Feature: Login Authentication
+- File: `login.php`
+- Method: HTTP POST
+
+---
+
+### Root Cause
+The application:
+- Uses hardcoded credentials inside the source code:
+  ```php
+  $username = "mandalorian";
+  $password = "mandalorian";
+Performs direct string comparison with user input
+
+Does not use:
+
+Secure password storage (hashing)
+
+Database-backed authentication
+
+Proper access control mechanisms
+
+Relies on client-submitted values for authentication decisions
+
+Proof of Concept (PoC)
+Step 1: Inspect Authentication Logic
+Reviewing the source code reveals fixed credentials embedded in the application:
+
+php
+Copy code
+if( $username == $_POST['uname'] && $password == $_POST['passwd'] ){
+    header("Location: index.php");
+}
+Step 2: Login Using Hardcoded Credentials
+Submitting the following values successfully authenticates the user:
+
+text
+Copy code
+Username: mandalorian
+Password: mandalorian
+Impact
+Authentication can be bypassed by anyone with access to the source code
+
+Complete compromise of protected functionality
+
+No ability to revoke or rotate credentials
+
+High risk if the same pattern is reused across environments
+
+Severity
+High
+
+CVSS v3.1 Score
+8.1 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+
+Remediation
+Remove hardcoded credentials from source code
+
+Implement database-backed authentication
+
+Store passwords using strong hashing algorithms (bcrypt, Argon2)
+
+Apply proper access control and session handling
+
+Conduct secure design reviews during development
+
+Conclusion
+The application demonstrates an Insecure Design flaw by embedding authentication credentials directly in the source code. This design choice enables trivial authentication bypass and exposes the system to unauthorized access.
+<img width="960" height="849" alt="no_redirect1" src="https://github.com/user-attachments/assets/3e234f25-ba5e-44b9-b552-0295220ae916" />
+<img width="575" height="482" alt="no_redirect" src="https://github.com/user-attachments/assets/27694a4e-abc5-4b5d-8835-4f12b14087e3" />
+
+## 5.10.3 Broken Authentication – Improper Two-Factor Authentication (2FA)
+
+### Vulnerability Title
+Broken Authentication Due to Improper 2FA Implementation
+
+---
+
+### Description
+The application implements a flawed Two-Factor Authentication (2FA) mechanism where the verification code is generated and stored insecurely in the server-side session without proper validation controls. The 2FA process can be bypassed due to weak session handling and improper enforcement of the verification step.
+
+---
+
+### Affected Component
+- Feature: Login with Two-Factor Authentication
+- Files:
+  - `index.php`
+  - `2fa.php`
+- Method: HTTP POST
+- Session Handling: PHP Sessions
+
+---
+
+### Root Cause
+The application suffers from multiple authentication design flaws:
+- Credentials are hardcoded (`admin:admin`)
+- 2FA code is:
+  - Generated using `rand()` (predictable)
+  - Stored directly in session
+- No binding of 2FA code to:
+  - Attempt count
+  - Time window
+  - Client/IP
+- Unlimited attempts allowed for OTP verification
+- Session is reset using `session_unset()` without enforcing complete authentication state validation
+
+---
+
+### Proof of Concept (PoC)
+
+#### Step 1: Login with Valid Credentials
+```text
+Username: admin
+Password: admin
+```
+This redirects the user to the 2FA verification page.
+
+Step 2: Observe 2FA Logic
+The following code generates and stores the OTP:
+
+php
+Copy code
+$randomCode = rand(10000, 99999);
+$_SESSION['2fa_code'] = $randomCode;
+Step 3: 2FA Bypass
+OTP attempts are not rate-limited
+
+OTP is regenerated or session state resets on page reload
+
+Attacker can:
+
+Reattempt OTP verification indefinitely
+
+Bypass the second authentication factor
+
+Impact
+Complete bypass of Two-Factor Authentication
+
+Unauthorized access to protected accounts
+
+False sense of security from ineffective 2FA
+
+Increased risk of account compromise
+
+Severity
+High
+
+CVSS v3.1 Score
+8.4 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+
+Remediation
+Enforce strict OTP attempt limits
+
+Bind OTP to:
+
+Specific user
+
+Session
+
+Expiration time
+
+Invalidate OTP after a single use
+
+Use cryptographically secure OTP generation
+
+Implement proper authentication state management
+
+Avoid hardcoded credentials
+
+
