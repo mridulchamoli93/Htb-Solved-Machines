@@ -2740,3 +2740,585 @@ Validate coupon usage per user/cart atomically
 <img width="873" height="182" alt="race_condition21" src="https://github.com/user-attachments/assets/fe1d2e2a-3d48-40a8-bfae-d7b3f7d99c17" />
 <img width="1222" height="955" alt="race_condition2" src="https://github.com/user-attachments/assets/a569bc19-45ac-4a97-b1ec-7ac62f156bbd" />
 
+## 5.12.1 Server-Side Template Injection (SSTI) – Blog Post Rendering
+
+### Vulnerability Title
+Server-Side Template Injection via Unsafe Twig Template Rendering
+
+---
+
+### Description
+The blog post functionality is vulnerable to **Server-Side Template Injection (SSTI)** due to unsafe rendering of user-supplied input using the Twig template engine. Although HTML tags are stripped using `strip_tags()`, the application directly renders user input as a Twig template without proper sanitization or sandboxing.
+
+An attacker can inject Twig template syntax into the blog content, which is then processed on the server side, leading to template parsing and potential code execution.
+
+---
+
+### Affected Component
+- Feature: Blog Post Submission
+- File: `index.php`
+- Template Engine: Twig
+- Method: HTTP POST
+
+---
+
+### Root Cause
+The vulnerability exists due to:
+- Direct rendering of user-controlled input using Twig
+- Lack of sandboxing or template context isolation
+- Incorrect assumption that `strip_tags()` prevents server-side injection
+- Using `Twig_Loader_String()` with attacker-controlled input
+
+#### Vulnerable Code Snippet
+```php
+$loader = new Twig_Loader_String();
+$twig = new Twig\Environment($loader);
+$userInput = strip_tags($_POST["content"]);
+$escapedInput = $twig->render($userInput);
+```
+Proof of Concept (PoC)
+Step 1: Inject Twig Syntax
+Submit the following payload in the blog post field:
+
+twig
+Copy code
+{{ 7 * 7 }}
+Step 2: Observe Server-Side Evaluation
+The application renders the result as:
+
+text
+Copy code
+49
+This confirms that user input is being parsed and evaluated by the Twig template engine on the server.
+
+Alternative Error-Based Proof
+Submitting malformed Twig syntax such as:
+
+twig
+Copy code
+{#
+Results in a Twig parser error, further confirming SSTI.
+
+Impact
+Server-side template execution
+
+Potential Remote Code Execution (depending on Twig configuration)
+
+Data leakage through template context access
+
+Full application compromise in advanced exploitation scenarios
+
+Severity
+Critical
+
+CVSS v3.1 Score
+9.8 (Critical)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+
+Remediation
+Never render user input directly as a template
+
+Use Twig sandbox mode if dynamic templates are required
+
+Treat user input as data, not templates
+
+Escape and encode output properly
+
+Avoid using Twig_Loader_String() with untrusted input
+
+Apply strict allowlisting for template expressions
+
+
+<img width="1920" height="702" alt="sstl_basic1" src="https://github.com/user-attachments/assets/9ed3c716-6fc1-497f-a21d-d7abee3a2fa8" />
+<img width="1920" height="702" alt="sstl_basic" src="https://github.com/user-attachments/assets/870b5076-1f7f-45e1-9363-8af6d568c67a" />
+
+## 5.12.2 Server-Side Template Injection (SSTI) – Blacklist Filter Bypass
+
+### Vulnerability Title
+Server-Side Template Injection via Inadequate Blacklist Filtering
+
+---
+
+### Description
+The search functionality is vulnerable to **Server-Side Template Injection (SSTI)** due to unsafe rendering of user input using the Twig template engine. Although a blacklist is implemented to block common Twig delimiters (`{{ }}`, `{% %}`), the filtering is insufficient and does not prevent user input from being processed by the template parser.
+
+User-controlled input is rendered directly as a Twig template, allowing attackers to trigger server-side template parsing and confirm SSTI through error-based techniques.
+
+---
+
+### Affected Component
+- Feature: Search Functionality
+- File: `index.php`
+- Template Engine: Twig
+- Method: HTTP GET
+
+---
+
+### Root Cause
+The vulnerability exists due to:
+- Use of `Twig_Loader_String()` with user-controlled input
+- Reliance on blacklist filtering instead of secure allowlisting
+- Incomplete filtering of Twig syntax
+- Rendering user input directly via `$twig->render()`
+
+#### Vulnerable Code Snippet
+```php
+$blacklist = array('{{', '}}', '{%', '%}');
+$search = str_replace($blacklist, '', $search);
+
+$result = $twig->render(strip_tags($search));
+```
+The blacklist removes some Twig expressions but does not prevent the input from being parsed by Twig.
+
+Proof of Concept (PoC)
+Step 1: Inject Twig Comment Syntax
+Submit the following payload in the search parameter:
+
+twig
+Copy code
+{#
+Step 2: Observe Application Behavior
+The application returns a Twig parser error, confirming that:
+
+User input reaches the Twig engine
+
+Twig attempts to parse the input
+
+Server-side template processing is occurring
+
+This confirms SSTI via error-based detection, even though expression execution is partially filtered.
+
+Impact
+Server-side template parsing of user input
+
+Potential for full SSTI if additional bypasses are found
+
+Information disclosure through error messages (depending on configuration)
+
+Increased attack surface due to unsafe template rendering
+
+Severity
+High
+
+CVSS v3.1 Score
+7.4 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N
+
+Remediation
+Do not render user input as a template
+
+Remove Twig_Loader_String() usage with untrusted data
+
+Use strict allowlisting or predefined templates only
+
+Implement Twig sandbox mode if dynamic rendering is required
+
+Avoid blacklist-based security controls
+<img width="898" height="399" alt="ssti_black" src="https://github.com/user-attachments/assets/37653fd4-d1af-45fe-a5f8-dc2d0c701671" />
+
+## 5.13.1 API Security – Broken Authentication via Insecure Credential Handling
+
+### Vulnerability Title
+Broken API Authentication Due to Insecure Credential Storage and Validation
+
+---
+
+### Description
+The API authentication mechanism is insecurely implemented by validating user credentials directly against a locally stored JSON file. Usernames and passwords are stored in plaintext and loaded into memory for authentication without any hashing, salting, or secure authentication controls.
+
+An attacker can abuse this design to obtain valid credentials, bypass authentication controls, and gain unauthorized access to protected API resources.
+
+---
+
+### Affected Component
+- Feature: API Login Authentication
+- File:
+  - `index.php`
+  - `api/users.json`
+- Method: HTTP POST (AJAX / API-based)
+- Data Source: Local JSON file
+
+---
+
+### Root Cause
+The vulnerability exists due to multiple insecure design choices:
+- Credentials stored in plaintext inside `users.json`
+- No password hashing or encryption
+- Authentication logic performed entirely at application level
+- No rate limiting or brute-force protection
+- API authentication logic disconnected from secure backend validation
+
+#### Vulnerable Code Snippet
+```php
+$usersData = file_get_contents('api/users.json');
+$users = json_decode($usersData, true);
+
+foreach ($users as $user) {
+    if ($user['username'] === $username && $user['password'] === $password) {
+        $foundUser = $user;
+        break;
+    }
+}
+```
+Proof of Concept (PoC)
+Step 1: Access Credential Source
+The application stores credentials in a readable JSON file:
+
+text
+Copy code
+api/users.json
+This file contains usernames and passwords in plaintext.
+
+Step 2: Authenticate Using Extracted Credentials
+Using valid credentials from the JSON file, submit a login request:
+
+text
+Copy code
+Username: user
+Password: user
+Step 3: Successful Authentication
+Application creates a valid session
+
+User is redirected to dashboard.php
+
+Protected API functionality becomes accessible
+
+Impact
+Unauthorized access to API endpoints
+
+Full authentication bypass
+
+Exposure of all user credentials
+
+Increased risk of privilege escalation
+
+Complete compromise of API security model
+
+Severity
+High
+
+CVSS v3.1 Score
+8.2 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+
+Remediation
+Never store credentials in plaintext
+
+Use strong password hashing algorithms (bcrypt, Argon2)
+
+Move authentication to a secure backend datastore
+
+Implement proper API authentication mechanisms (JWT, OAuth2)
+
+Apply rate limiting and account lockout controls
+
+Restrict direct access to sensitive API files
+<img width="798" height="105" alt="api_hacking1" src="https://github.com/user-attachments/assets/9294a2ff-eca0-4fec-a708-446d1740e02c" />
+<img width="675" height="324" alt="api_hacking" src="https://github.com/user-attachments/assets/7d97c1d9-520d-4dc2-99fe-ca5afc0bf780" />
+<img width="1920" height="950" alt="api_hackin2" src="https://github.com/user-attachments/assets/a63872f7-7c04-48fa-893d-e0580a6885b7" />
+
+## 5.14.1 CAPTCHA Bypass – Improper Server-Side CAPTCHA Validation
+
+### Vulnerability Title
+CAPTCHA Bypass Due to Weak Server-Side Validation Logic
+
+---
+
+### Description
+The comment submission functionality is vulnerable to a **CAPTCHA Bypass** due to improper server-side validation of CAPTCHA values. The application stores all generated CAPTCHA values in a session array and validates user input by checking whether the submitted value exists anywhere in that array, rather than validating against the currently displayed CAPTCHA.
+
+This design allows attackers to bypass the CAPTCHA mechanism without solving the active challenge.
+
+---
+
+### Affected Component
+- Feature: Comment Submission with CAPTCHA
+- File: `index.php`
+- Method: HTTP POST
+- Session Handling: PHP Sessions
+
+---
+
+### Root Cause
+The vulnerability exists due to the following design flaws:
+- Generated CAPTCHA values are stored persistently in a session array
+- Old CAPTCHA values are never invalidated
+- CAPTCHA validation uses `in_array()` instead of strict one-time matching
+- CAPTCHA is not bound to a single request or submission attempt
+
+#### Vulnerable Code Snippet
+```php
+array_push($_SESSION['captchas'], $captchaValue);
+
+if (in_array($submitted_captcha, $_SESSION['captchas'])) {
+    // CAPTCHA accepted
+}
+```
+Any previously generated CAPTCHA value remains valid indefinitely within the session.
+
+Proof of Concept (PoC)
+Step 1: Generate Multiple CAPTCHA Values
+Reload the page multiple times to generate several CAPTCHA challenges.
+Each generated CAPTCHA value is stored in the session.
+
+Step 2: Submit Any Previously Generated CAPTCHA
+Submit the form using any CAPTCHA value generated earlier, not necessarily the one currently displayed.
+
+text
+Copy code
+captcha = <any previous valid captcha>
+Step 3: CAPTCHA Bypass
+The application accepts the CAPTCHA
+
+Comment submission succeeds
+
+CAPTCHA protection is effectively bypassed
+
+Impact
+Automated spam submissions
+
+CAPTCHA protection rendered ineffective
+
+Abuse of comment functionality
+
+Increased risk of bot-based attacks
+
+Severity
+Medium
+
+CVSS v3.1 Score
+6.4 (Medium)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N
+
+Remediation
+Store only a single active CAPTCHA value per session
+
+Invalidate CAPTCHA immediately after one use
+
+Bind CAPTCHA to a specific request or form submission
+
+Use time-based expiration for CAPTCHA values
+
+Implement server-side CAPTCHA libraries or third-party services (reCAPTCHA)
+<img width="1901" height="950" alt="captcha1" src="https://github.com/user-attachments/assets/b4fecbdb-7388-4cd1-ae06-44f5471b6a39" />
+
+
+## 5.14.2 CAPTCHA Bypass – Client-Side Controlled Math CAPTCHA
+
+### Vulnerability Title
+CAPTCHA Bypass Due to Trusting Client-Side CAPTCHA Parameters
+
+---
+
+### Description
+The application implements a math-based CAPTCHA mechanism that relies on client-supplied hidden form fields (`num1` and `num2`) for validation. The server validates the CAPTCHA result using values received from the client instead of strictly relying on server-side stored CAPTCHA values.
+
+An attacker can modify these hidden fields to control the CAPTCHA calculation and submit a valid response without solving the actual CAPTCHA challenge.
+
+---
+
+### Affected Component
+- Feature: Message Submission with Math CAPTCHA
+- File: `index.php`
+- Method: HTTP POST
+- CAPTCHA Type: Arithmetic CAPTCHA
+
+---
+
+### Root Cause
+The vulnerability exists due to the following issues:
+- CAPTCHA operands (`num1` and `num2`) are sent as hidden form fields
+- Server trusts client-supplied values for CAPTCHA verification
+- CAPTCHA logic is not enforced strictly server-side
+- CAPTCHA challenge can be manipulated without solving it
+
+#### Vulnerable Code Snippet
+```php
+$num1_posted = isset($_POST['num1']) ? (int)$_POST['num1'] : null;
+$num2_posted = isset($_POST['num2']) ? (int)$_POST['num2'] : null;
+
+$captchaSonuc = $captchaAnswer == ($num1_posted + $num2_posted);
+The server validates the CAPTCHA using values fully controlled by the client.
+```
+
+Proof of Concept (PoC)
+Step 1: Intercept CAPTCHA Request
+Intercept the form submission request using a proxy tool (e.g., Burp Suite).
+
+Step 2: Modify CAPTCHA Parameters
+Change the hidden parameters in the request:
+
+text
+Copy code
+num1 = 1
+num2 = 1
+captcha = 2
+Step 3: Submit Modified Request
+Send the modified request to the server.
+
+Step 4: CAPTCHA Bypass
+CAPTCHA validation succeeds
+
+Message is accepted without solving the displayed CAPTCHA
+
+CAPTCHA protection is effectively bypassed
+
+Impact
+CAPTCHA mechanism rendered ineffective
+
+Automated submissions possible
+
+Increased risk of spam and bot abuse
+
+Weakens overall application security controls
+
+Severity
+Medium
+
+CVSS v3.1 Score
+6.5 (Medium)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N
+
+Remediation
+Perform CAPTCHA validation strictly on the server
+
+Do not trust client-supplied CAPTCHA parameters
+
+Store CAPTCHA operands server-side only
+
+Bind CAPTCHA challenge to a single request/session
+
+Use proven CAPTCHA libraries or third-party CAPTCHA services
+<img width="893" height="614" alt="broken_captcha" src="https://github.com/user-attachments/assets/cf0ba33d-fc44-4b11-8782-72a23b2e68a1" />
+
+## 5.15.1 Path Traversal – Improper Validation of File Path Parameter
+
+### Vulnerability Title
+Path Traversal via Unsanitized `productId` Parameter
+
+---
+
+### Description
+The application is vulnerable to a **Path Traversal** attack due to improper validation of the `productId` parameter passed through the URL. The parameter value is directly used to reference server-side resources without enforcing strict input validation or canonicalization.
+
+An attacker can manipulate the `productId` parameter to traverse directories and attempt to access unauthorized files on the server.
+
+---
+
+### Affected Component
+- Feature: Product Detail Page
+- File: `product-detail.php`
+- Parameter: `productId`
+- Method: HTTP GET
+
+---
+
+### Root Cause
+The vulnerability exists because:
+- User-controlled input is directly appended to file paths
+- No validation or sanitization is applied to the `productId` parameter
+- The application assumes trusted input based on UI-generated values
+- Directory traversal sequences are not filtered or normalized
+
+#### Vulnerable Code Behavior
+```html
+<a href="product-detail.php?productId=1.png">
+```
+The backend trusts the productId value and uses it to locate files without restriction.
+
+Proof of Concept (PoC)
+Step 1: Intercept the Request
+Access a normal product:
+
+text
+Copy code
+GET /product-detail.php?productId=1.png
+Step 2: Manipulate the Parameter
+Modify the productId parameter to include directory traversal sequences:
+
+text
+Copy code
+GET /product-detail.php?productId=../../../../etc/passwd
+Step 3: Observe Result
+Application attempts to access files outside the intended directory
+
+Sensitive system files may be disclosed if readable
+
+Unauthorized file access is possible
+
+Impact
+Disclosure of sensitive server files
+
+Potential exposure of configuration files
+
+Increased risk of further exploitation
+
+Violation of access control boundaries
+
+Severity
+High
+
+CVSS v3.1 Score
+7.7 (High)
+
+Vector:
+CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+
+Remediation
+Validate and whitelist allowed file names
+
+Prevent directory traversal sequences (../, ..\\)
+
+Use fixed server-side mappings instead of user-controlled paths
+
+Normalize and canonicalize file paths before access
+
+Apply least-privilege permissions to server files
+<img width="1109" height="584" alt="path_traversal1" src="https://github.com/user-attachments/assets/43667ea0-0cda-4bb2-9f97-549627fab72b" />
+<img width="1920" height="813" alt="path_traversal" src="https://github.com/user-attachments/assets/99fd833d-ef03-4c54-87b7-9544cb3f52cf" />
+
+## 6. Conclusion and Recommendations
+
+### 6.1 Conclusion
+The web application was thoroughly assessed for common web and application security vulnerabilities. The assessment identified multiple security weaknesses across authentication mechanisms, access control, input handling, business logic, and session management.
+
+Several **critical and high-severity vulnerabilities** were discovered, including authentication flaws, server-side injection vulnerabilities, race conditions, insecure design implementations, API security weaknesses, and CAPTCHA bypass mechanisms. These issues could allow an attacker to gain unauthorized access, bypass security controls, manipulate application logic, and compromise sensitive data.
+
+Overall, the security posture of the application is assessed as **weak**, with a **high risk level**. Immediate remediation is required to address the identified vulnerabilities and reduce the attack surface before the application can be considered secure for production use.
+
+---
+
+### 6.2 Recommendations
+To improve the overall security posture of the application, the following recommendations should be implemented:
+
+- Adopt secure coding practices based on industry standards such as the **OWASP Top 10** and **OWASP API Top 10**
+- Perform strict **server-side input validation** and avoid relying on client-side controls
+- Harden authentication mechanisms by:
+  - Enforcing strong password policies
+  - Implementing proper account lockout and rate limiting
+  - Securing multi-factor authentication implementations
+- Apply robust **session management** practices, including:
+  - Secure session handling
+  - Proper session invalidation
+  - Avoiding trust in client-controlled session parameters
+- Avoid insecure design patterns such as hardcoded credentials and insecure logic flows
+- Implement proper authorization checks for all sensitive operations
+- Use secure libraries and frameworks for CAPTCHA, authentication, and cryptographic operations
+- Conduct **regular security testing**, including vulnerability assessments and code reviews
+- Ensure security findings are re-tested after remediation to confirm fixes
+
+---
+
+### Final Note
+Addressing the identified vulnerabilities and following the above recommendations will significantly enhance the security of the application and reduce the likelihood of successful attacks.
+
