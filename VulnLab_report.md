@@ -729,3 +729,786 @@ Validate that the authenticated user owns or is permitted to access the requeste
 Avoid exposing predictable object identifiers.
 
 Use indirect object references or UUIDs where possible.
+#### 5.3.1 Insecure Direct Object Reference (IDOR) – Invoice Access
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.7 (AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N)
+
+#### Affected Component
+Invoice viewing functionality using object identifiers in request parameters.
+
+#### Description
+An Insecure Direct Object Reference (IDOR) vulnerability was identified in the invoice access functionality. The application exposes internal invoice identifiers through a request parameter and fails to verify whether the authenticated user is authorized to access the requested invoice.
+
+By modifying the invoice identifier value in the request, an attacker can access invoices belonging to other users without proper authorization checks.
+
+#### Root Cause
+The application relies on client-supplied object identifiers to retrieve invoices and does not enforce ownership or authorization validation on the server side.
+
+#### Proof of Concept
+An authenticated user accesses their own invoice:
+
+```http
+GET /lab/idor/invoices/?invoice_id=102 HTTP/1.1
+Host: localhost:1337
+```
+<img width="918" height="815" alt="Ticket_sale1" src="https://github.com/user-attachments/assets/80fdd6e2-dd0c-47f1-be7b-8a45718e627f" />
+<img width="918" height="815" alt="ticket_2" src="https://github.com/user-attachments/assets/abd6da4c-8f92-4971-8c4d-b705c9cb35b4" />
+
+By modifying the invoice_id parameter, the user is able to access another user’s invoice:
+
+GET /lab/idor/invoices/?invoice_id=103 HTTP/1.1
+Host: localhost:1337
+
+The application returns the requested invoice without verifying ownership.
+
+Impact
+
+Successful exploitation allows attackers to access sensitive financial documents belonging to other users. This may lead to disclosure of personally identifiable information (PII), financial data leakage, privacy violations, and potential regulatory compliance issues.
+
+Remediation
+
+Enforce server-side authorization checks for all object access.
+
+Validate that the authenticated user owns or is permitted to access the requested invoice.
+
+Avoid exposing predictable object identifiers.
+
+Use indirect object references or UUIDs where possible.
+
+### 5.3.2 Insecure Direct Object Reference (IDOR) – Changing Password
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.5 (AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N)
+
+#### Affected Component
+Password change functionality.
+
+#### Description
+An Insecure Direct Object Reference (IDOR) vulnerability was identified in the password change functionality. The application allows users to change account passwords by submitting a `user_id` parameter in the request.
+
+By modifying the `user_id` value in the request, an attacker can change the password of **other users** without proper authorization checks.
+
+The application does not verify whether the authenticated user is authorized to perform password changes for the specified user ID.
+
+#### Root Cause
+The server blindly trusts the client-supplied `user_id` parameter and fails to enforce object-level access control during password change operations.
+
+#### Proof of Concept
+
+**Original Request (Own Account):**
+```http
+POST /lab/idor/changing-password/ HTTP/1.1
+Host: localhost:1337
+Content-Type: application/x-www-form-urlencoded
+
+password=MRIDUL&user_id=1
+```
+POST /lab/idor/changing-password/ HTTP/1.1
+Host: localhost:1337
+Content-Type: application/x-www-form-urlencoded
+
+password=Mridul2&user_id=10
+<img width="914" height="895" alt="changing_password1" src="https://github.com/user-attachments/assets/39867964-d5c7-4d9e-8784-c6aa77bb4730" />
+<img width="918" height="815" alt="changing_password" src="https://github.com/user-attachments/assets/0927b45f-955c-4eb9-9ecd-df54ad0cab27" />
+
+Impact
+
+Successful exploitation allows an attacker to:
+
+Change passwords of arbitrary users
+
+Take over victim accounts
+
+Escalate privileges
+
+Cause account lockout or denial of service for legitimate users
+
+Remediation
+
+Enforce strict server-side authorization checks.
+
+Ensure users can modify only their own account data.
+
+Do not accept sensitive object identifiers (e.g., user_id) directly from client requests.
+
+Derive user identity from the authenticated session instead of request parameters.
+
+Implement access control checks for all state-changing operations.
+### 5.3.4 Insecure Direct Object Reference (IDOR) – Money Transfer
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.5 (AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:H/A:N)
+
+#### Affected Component
+Money Transfer functionality handling user-controlled transaction parameters.
+
+#### Description
+An Insecure Direct Object Reference (IDOR) vulnerability was identified in the Money Transfer feature.  
+The application relies on client-supplied parameters to identify the sender and recipient of a transaction without enforcing proper server-side authorization checks.
+
+By modifying request parameters such as `sender_id`, `recipient_id`, and `transfer_amount`, an attacker can perform unauthorized money transfers from other users’ accounts.
+
+#### Root Cause
+The application trusts user-controlled identifiers for sender and recipient accounts and does not validate whether the authenticated user is authorized to initiate transactions on those accounts.
+
+#### Proof of Concept
+An attacker intercepts and modifies the money transfer request:
+
+```http
+POST /lab/idor/money-transfer/index.php HTTP/1.1
+Host: localhost:1337
+Content-Type: application/x-www-form-urlencoded
+
+transfer_amount=1000&recipient_id=1&sender_id=3
+```
+<img width="1900" height="873" alt="money_transfer1" src="https://github.com/user-attachments/assets/f2f21231-0eeb-4760-8bd7-bc37244329cb" />
+<img width="1917" height="928" alt="money_transfer" src="https://github.com/user-attachments/assets/2871791e-4e7d-4eb0-9384-8bf908338eff" />
+
+#### 5.3.5 Insecure Direct Object Reference (IDOR) – Address Entry
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.1 (AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+Order confirmation and address entry functionality using `addressID` parameter.
+
+#### Description
+An Insecure Direct Object Reference (IDOR) vulnerability was identified in the address entry feature of the application. The application allows authenticated users to update and select delivery addresses by submitting an `addressID` parameter during order confirmation.
+
+The server does not verify whether the supplied `addressID` belongs to the currently authenticated user. By modifying this parameter in the request, an attacker can place orders using another user’s saved address and identity.
+
+#### Root Cause
+The application relies on client-supplied object identifiers (`addressID`) without implementing proper server-side authorization checks. There is no validation to ensure that the referenced address is owned by the authenticated user.
+
+#### Proof of Concept
+A legitimate order request uses the attacker’s own address ID:
+
+address=<addressID=1&order=rubber_duck
+
+css
+Copy code
+
+By modifying the `addressID` value to reference another user’s address:
+
+address=<addressID=4&order=rubber_duck
+<img width="925" height="820" alt="address_entry1" src="https://github.com/user-attachments/assets/2911972b-9db2-4de7-ab8b-973e58812cab" />
+<img width="927" height="819" alt="address_entry" src="https://github.com/user-attachments/assets/dbd49f5f-8627-4e02-8890-69d042dea415" />
+#### 5.3.6 Insecure Direct Object Reference (IDOR) – About Profile
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.1 (AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N)
+
+#### Affected Component
+User profile “About” page and profile update functionality using the `userid` parameter.
+
+#### Description
+An Insecure Direct Object Reference (IDOR) vulnerability was identified in the “About” profile feature of the application. The application uses a client-controlled `userid` value stored in cookies and request parameters to retrieve and update user profile information.
+
+The server does not validate whether the supplied `userid` belongs to the currently authenticated user. By modifying the `userid` value, an authenticated attacker can access and modify another user’s profile information, including personal details such as name, job title, biography, email address, phone number, and location.
+
+#### Root Cause
+The application directly references internal user identifiers (`userid`) without enforcing server-side authorization checks. There is no verification to ensure that profile read or update operations are performed only on resources owned by the authenticated user.
+
+#### Proof of Concept
+The attacker intercepts the request and observes the following cookie value:
+
+Cookie: PHPSESSID=5cl39m5sql2dcs47k9qlrucft8; userid=4
+
+vbnet
+Copy code
+
+By modifying the `userid` value to reference another user:
+
+Cookie: PHPSESSID=5cl39m5sql2dcs47k9qlrucft8; userid=3
+
+css
+Copy code
+
+The application successfully loads another user’s profile (“Cedric Kelly”) and allows unauthorized modification of profile details via the following request:
+
+POST /lab/idor/about/saveprofile.php
+<img width="957" height="814" alt="about_2" src="https://github.com/user-attachments/assets/2043ff6c-a66a-4070-b5c2-7cfe4b6de756" />
+<img width="1920" height="951" alt="about_1" src="https://github.com/user-attachments/assets/cf9e58a8-7ad3-4dc2-a49f-d504525b09e7" />
+
+#### 5.3.7 Business Logic Flaw – Shopping Cart Checkout Validation
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.0 (AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N)
+
+#### Affected Component
+Shopping cart checkout and payment verification workflow.
+
+#### Description
+A business logic vulnerability was identified in the shopping cart checkout process. The application allows users to complete purchases even when the total cart value exceeds the available account balance.
+
+During checkout, the application performs insufficient server-side validation of the user’s balance before finalizing the transaction. As a result, an attacker can complete a purchase and force the account balance into a negative value.
+
+Additionally, the application exposes one-time verification codes inside the internal message box, which can be reused or accessed without proper binding to a specific transaction or balance check.
+
+#### Root Cause
+The application trusts client-side workflow sequencing and does not enforce strict server-side validation for:
+- Account balance checks before purchase completion
+- Binding verification codes to a specific transaction, user, or cart state
+- Preventing negative balances during checkout
+
+This allows the checkout process to be abused even when logical preconditions are not met.
+
+#### Proof of Concept
+The attacker adds multiple high-value items to the shopping cart, exceeding the available balance:
+
+#### 5.3.7 Business Logic Flaw – Shopping Cart Checkout Validation
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.0 (AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N)
+
+#### Affected Component
+Shopping cart checkout and payment verification workflow.
+
+#### Description
+A business logic vulnerability was identified in the shopping cart checkout process. The application allows users to complete purchases even when the total cart value exceeds the available account balance.
+
+During checkout, the application performs insufficient server-side validation of the user’s balance before finalizing the transaction. As a result, an attacker can complete a purchase and force the account balance into a negative value.
+
+Additionally, the application exposes one-time verification codes inside the internal message box, which can be reused or accessed without proper binding to a specific transaction or balance check.
+
+#### Root Cause
+The application trusts client-side workflow sequencing and does not enforce strict server-side validation for:
+- Account balance checks before purchase completion
+- Binding verification codes to a specific transaction, user, or cart state
+- Preventing negative balances during checkout
+
+This allows the checkout process to be abused even when logical preconditions are not met.
+
+#### Proof of Concept
+The attacker adds multiple high-value items to the shopping cart, exceeding the available balance:
+
+Balance: $1000
+Cart Total: $1803.98
+
+vbnet
+Copy code
+
+When attempting to purchase, the application displays a price error message:
+
+GET /lab/idor/shopping-cart/cart.php?mess=priceError
+
+css
+Copy code
+
+Despite the insufficient balance, the attacker proceeds with the checkout flow and submits a valid verification code obtained from the message box:
+
+GET /lab/idor/shopping-cart/3Dvalid.php
+
+css
+Copy code
+
+The purchase completes successfully, resulting in a negative balance:
+<img width="959" height="998" alt="shopping_cart1" src="https://github.com/user-attachments/assets/74c4241e-806a-4d24-8ec8-c8ae84033ed8" />
+<img width="959" height="998" alt="shopping_cart_3" src="https://github.com/user-attachments/assets/835f3d85-9ec9-4504-8289-169814d93d01" />
+<img width="959" height="998" alt="shopping_cart_2" src="https://github.com/user-attachments/assets/9ccc0b04-c44b-4110-a570-582afd85a21d" />
+<img width="1903" height="958" alt="shopping_cart" src="https://github.com/user-attachments/assets/17c5cac0-c515-4c6d-bda4-8af9f76f42de" />
+
+Balance: -$49.99 
+
+#### 5.4.1 OS Command Injection – Send Ping
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
+
+#### Affected Component
+Ping functionality accepting user-supplied IP address via POST request.
+
+#### Description
+An OS Command Injection vulnerability was identified in the Send Ping feature of the application. The application accepts user-supplied input for an IP address and directly passes it to a system-level `ping` command without proper input validation or sanitization.
+
+By injecting shell metacharacters into the input parameter, an attacker can execute arbitrary operating system commands on the underlying server.
+
+The command output is directly returned in the HTTP response, confirming successful command execution.
+
+#### Root Cause
+The application constructs system commands using unsanitized user input and executes them via the operating system shell. No input validation, escaping, or allow-listing is implemented before command execution.
+
+#### Proof of Concept
+A malicious payload is injected into the `ip` parameter using command separators.
+
+**Payload to read system users:**
+ip=127.0.0.1;cat /etc/passwd
+
+pgsql
+Copy code
+
+The server responds with the contents of `/etc/passwd`, confirming command execution.
+
+**Payload to identify execution context:**
+ip=127.0.0.1;whoami
+
+sql
+Copy code
+
+The response returns:
+www-data
+<img width="963" height="922" alt="send_ping1" src="https://github.com/user-attachments/assets/b116cbe3-3e32-4672-8698-f49de7e50ec1" />
+<img width="957" height="890" alt="send_ping" src="https://github.com/user-attachments/assets/e4ec230d-f295-4c0d-988f-ccfb56b0b835" />
+
+#### 5.4.2 Send Ping (Filter) – Command Injection (Not Exploitable)
+
+#### Severity
+Low
+
+#### CVSS v3.1 Score
+2.7 (AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L)
+
+#### Affected Component
+Filtered ping functionality accepting IP address input via POST request.
+
+#### Description
+The Send Ping (Filter) functionality was tested for OS Command Injection vulnerabilities by supplying various command injection payloads using shell metacharacters, command separators, and command substitution techniques.
+
+Unlike the unfiltered ping functionality, this endpoint implements input filtering and validation mechanisms that restrict user input to valid IP address formats. As a result, attempts to inject additional operating system commands do not lead to arbitrary command execution.
+
+The application only executes the intended `ping` command and does not return output from injected payloads.
+
+#### Root Cause
+The application enforces input validation and filtering on the `ip` parameter, preventing command separators and shell metacharacters from reaching the operating system shell. This effectively mitigates OS command injection attempts.
+
+#### Proof of Concept
+The following payloads were tested and did not result in command execution:
+
+**Attempted command injection:**
+ip=127.0.0.1;id
+
+bash
+Copy code
+
+**Attempted command substitution:**
+ip=127.0.0.1$(id)
+
+cpp
+Copy code
+
+**Attempted logical operator injection:**
+ip=127.0.0.1 && whoami
+
+markdown
+Copy code
+
+All payloads resulted in either:
+- Normal ping output, or
+- Input being sanitized and treated as a literal IP address
+
+No command output was returned, confirming that command injection is not exploitable.
+<img width="953" height="1028" alt="send_ping_filtered1" src="https://github.com/user-attachments/assets/80194ea4-34cb-4e3e-b051-733fc9e260d0" />
+<img width="949" height="864" alt="send_ping_filtered" src="https://github.com/user-attachments/assets/dc45949c-e56d-4047-90c9-24b319d0ca78" />
+
+
+#### Impact
+- No unauthorized command execution possible
+- No data exposure or system compromise observed
+- Minimal impact limited to intended ping functionality
+
+#### Recommendation
+- Maintain strict allow-list validation for IP address inputs
+- Avoid passing user input directly to shell commands
+- Prefer native language networking libraries over shell execution
+- Continue implementing server-side input validation and encoding
+
+#### 5.4.3 OS Command Injection – Stock Control
+
+#### Severity
+Critical
+
+#### CVSS v3.1 Score
+9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)
+
+#### Affected Component
+Stock control functionality accepting `product_id` parameter via GET request.
+
+#### Description
+An OS Command Injection vulnerability was identified in the Stock Control feature of the application. The application uses the `product_id` parameter from a GET request to check product stock levels. This parameter is directly incorporated into a system-level command without proper input validation or sanitization.
+
+By injecting shell metacharacters into the `product_id` parameter, an attacker can execute arbitrary operating system commands on the underlying server. The command output is reflected in the HTTP response, confirming successful command execution.
+
+#### Root Cause
+The application constructs and executes system commands using unsanitized user input received via the `product_id` parameter. There is no allow-list validation, escaping, or secure command execution mechanism in place to prevent command injection.
+
+#### Proof of Concept
+A normal stock check request uses a valid product identifier:
+
+GET /lab/command-injection/stock-check/?product_id=2
+
+powershell
+Copy code
+
+By injecting an operating system command using a command separator:
+
+GET /lab/command-injection/stock-check/?product_id=1;id
+
+bash
+Copy code
+
+The server responds with command output:
+
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+vbnet
+Copy code
+
+Further confirmation is obtained by attempting to read system files:
+
+GET /lab/command-injection/stock-check/?product_id=1;pwd
+
+pgsql
+Copy code
+
+The response reveals server-side directory information, confirming arbitrary command execution.
+
+<img width="1881" height="841" alt="stock_control1" src="https://github.com/user-attachments/assets/248becb6-ba9f-4415-bf86-5157524d9ea7" />
+<img width="1884" height="852" alt="stock_control" src="https://github.com/user-attachments/assets/dedb09fb-7d8e-440d-bb29-6e49b89caa8a" />
+
+
+#### Impact
+- Remote execution of arbitrary operating system commands
+- Disclosure of sensitive system information
+- Potential full server compromise
+- Ability to pivot to further attacks within the environment
+
+#### Recommendation
+- Never pass user-supplied input directly to system commands
+- Implement strict allow-list validation for expected parameter values
+- Use safe language-native APIs instead of shell execution
+- Apply least-privilege execution for web server processes
+- Implement centralized input validation and security logging
+
+#### 5.4.4 Blind OS Command Injection – Blind Command Execution
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H)
+
+#### Affected Component
+Blind command execution functionality processing user-controlled input via HTTP headers.
+
+#### Description
+A Blind OS Command Injection vulnerability was identified in the blind command injection functionality of the application. The application processes user-supplied input from HTTP headers and passes it to an operating system command using a shell execution function.
+
+Unlike standard command injection, the output of injected commands is not directly returned in the HTTP response. However, injected commands are still executed on the server, which can be confirmed using timing-based techniques.
+
+This confirms that arbitrary OS command execution is possible even though command output is not reflected.
+
+#### Root Cause
+The application passes attacker-controlled input into a system command execution function without proper sanitization or validation. Although command output is not displayed, the injected commands are still executed by the operating system shell.
+
+#### Proof of Concept
+A baseline request is sent to measure the normal server response time:
+
+```bash
+curl -s -o /dev/null -w "Baseline time: %{time_total}\n" \
+-H "User-Agent: Mozilla/5.0" \
+http://localhost:1337/lab/command-injection/blind-command-injection/blind.php
+```
+A malicious payload is then injected via the User-Agent header to introduce a delay:
+
+bash
+Copy code
+curl -s -o /dev/null -w "Injected time: %{time_total}\n" \
+-H "User-Agent: Mozilla/5.0; sleep 5" \
+http://localhost:1337/lab/command-injection/blind-command-injection/blind.php
+The response time increases significantly compared to the baseline request, confirming that the injected command was executed on the server.
+<img width="960" height="349" alt="blind_command_injection" src="https://github.com/user-attachments/assets/4a7db2e6-5b58-4646-ad69-4a510679d360" />
+
+
+
+Impact
+Execution of arbitrary OS commands without output visibility
+Potential denial of service via resource exhaustion
+Ability to chain further attacks such as persistence or lateral movement
+High risk despite lack of direct output
+
+Recommendation
+Never pass user-controlled input to shell execution functions
+Avoid using system calls such as exec(), system(), or backticks
+Implement strict allow-list validation for all inputs
+Use language-native APIs instead of shell commands
+Apply least-privilege execution for web server processes
+Implement security monitoring for abnormal execution delays
+
+#### 5.5.1 XML External Entity (XXE) Injection
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+8.6 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)
+
+#### Affected Component
+XML processing functionality accepting user-supplied XML input via POST request.
+
+#### Description
+An XML External Entity (XXE) vulnerability was identified in the XML parsing functionality of the application. The application processes user-supplied XML data and allows the use of a `DOCTYPE` declaration with external entity definitions.
+
+The XML parser is configured insecurely, allowing external entities to be defined and expanded during XML parsing. This enables an attacker to read arbitrary files from the server by referencing local system resources as external entities.
+
+The vulnerability was confirmed through both entity reflection and successful disclosure of sensitive system files.
+
+#### Root Cause
+The application uses an XML parser with external entity processing enabled. There are no security controls in place to disable `DOCTYPE` declarations or external entity resolution, allowing attacker-controlled entities to be expanded during parsing.
+
+#### Proof of Concept
+
+**Step 1: Confirm entity expansion**
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE city [
+  <!ENTITY test "XXE_WORKING">
+]>
+<city>
+  <title>&test;</title>
+  <amount>293</amount>
+</city>
+```
+Response:
+
+XXE_WORKING 293
+This confirms that user-defined XML entities are processed by the server.
+
+Step 2: Read sensitive server file (/etc/passwd)
+
+xml
+<?xml version="1.0"?>
+<!DOCTYPE city [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<city>
+  <title>&xxe;</title>
+  <amount>293</amount>
+</city>
+Response:
+
+ruby
+Copy code
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+...
+mysql:x:101:102:MySQL Server:/nonexistent:/bin/false
+This confirms arbitrary file disclosure via XXE.
+
+<img src="https://github.com/user-attachments/assets/xxe_file_disclosure.png" /> <img src="https://github.com/user-attachments/assets/xxe_entity_confirmation.png" />
+Impact
+Disclosure of sensitive server-side files
+Exposure of system users and service accounts
+Potential reconnaissance for further attacks
+Increased risk of server compromise
+
+Recommendation
+Disable external entity resolution in XML parsers
+Disallow DOCTYPE declarations entirely if not required
+Use secure XML parser configurations (libxml_disable_entity_loader, XMLConstants.FEATURE_SECURE_PROCESSING)
+Validate and sanitize all XML input
+Prefer data formats such as JSON where possible
+<img width="956" height="904" alt="xml_external_Entity1" src="https://github.com/user-attachments/assets/38680924-728a-4aeb-b309-3c4ff9ef46ec" />
+<img width="954" height="816" alt="xml_external_entitity" src="https://github.com/user-attachments/assets/6aba063f-3119-4787-ac5f-b818e143dd46" />
+
+#### 5.6.1 Local File Inclusion (LFI) – Learn the Capital
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)
+
+#### Affected Component
+Country selection functionality using the `country` GET parameter.
+
+#### Description
+A Local File Inclusion (LFI) vulnerability was identified in the “Learn the Capital” feature of the application. The application uses the `country` parameter from a GET request to dynamically include server-side files.
+
+The parameter is not properly validated or sanitized, allowing an attacker to perform directory traversal and include arbitrary local files. By manipulating the `country` parameter, sensitive internal files such as administrative pages can be accessed without authorization.
+
+#### Root Cause
+The application directly uses user-supplied input in a file inclusion function without enforcing strict allow-list validation. There are no controls in place to prevent directory traversal sequences or unauthorized file inclusion.
+
+#### Proof of Concept
+A legitimate request uses a valid country value:
+
+GET /lab/file-inclusion/learn-the-capital-1/index.php?country=france.php
+
+css
+Copy code
+
+By manipulating the `country` parameter to include a parent directory reference:
+
+GET /lab/file-inclusion/learn-the-capital-1/index.php?country=../admin.php
+
+css
+Copy code
+
+The application successfully includes the administrative page and displays the following message:
+
+Welcome to the Admin page..
+
+pgsql
+Copy code
+
+This confirms unauthorized local file inclusion.
+
+#### Impact
+- Unauthorized access to internal application files
+- Exposure of administrative functionality
+- Potential disclosure of sensitive configuration or source code
+- Increased attack surface for further exploitation
+
+#### Recommendation
+- Avoid dynamic file inclusion based on user input
+- Implement strict allow-list validation for allowed file names
+- Normalize and validate file paths before inclusion
+- Disable directory traversal sequences (`../`)
+- Use static routing or mapping logic instead of file includes
+<img width="954" height="900" alt="capital1" src="https://github.com/user-attachments/assets/cbb53347-11fe-4be9-b82d-4ca7b694d4d1" />
+<img width="1036" height="342" alt="capital" src="https://github.com/user-attachments/assets/28201fc0-8199-4093-9757-736ffd476a8b" />
+
+#### 5.6.2 Local File Inclusion (LFI) – Learn the Capital (Variant 2)
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)
+
+#### Affected Component
+Country selection functionality in “Learn the Capital – 2” using the `country` GET parameter.
+
+#### Description
+A Local File Inclusion (LFI) vulnerability was identified in the second variant of the “Learn the Capital” feature. The application dynamically includes server-side files based on the value of the `country` parameter supplied in the URL.
+
+The application fails to properly validate or sanitize the parameter, allowing an attacker to perform directory traversal and include arbitrary local files. This results in unauthorized access to internal application files, including administrative pages.
+
+#### Root Cause
+The application directly uses the `country` parameter in a file inclusion mechanism without enforcing strict allow-list validation. Directory traversal sequences such as `../` are not filtered or normalized before file inclusion.
+
+#### Proof of Concept
+A normal request using a valid country value:
+
+GET /lab/file-inclusion/learn-the-capital-2/index.php?country=france.php
+
+csharp
+Copy code
+
+By manipulating the parameter to traverse directories and include an internal file:
+
+GET /lab/file-inclusion/learn-the-capital-2/index.php?country=../../admin.php
+
+css
+Copy code
+
+The application successfully includes the administrative page and displays:
+
+Welcome to the Admin page..
+
+markdown
+Copy code
+
+This confirms the presence of a Local File Inclusion vulnerability.
+
+#### Impact
+- Unauthorized access to internal application files
+- Exposure of administrative functionality
+- Potential disclosure of sensitive source code or configuration files
+- Increased risk of further exploitation
+
+#### Recommendation
+- Avoid including files dynamically based on user input
+- Implement strict allow-list validation for permitted file names
+- Normalize file paths before inclusion
+- Block directory traversal patterns such as `../`
+- Use static routing or controller-based logic instead of file inclusion
+
+<img width="957" height="819" alt="find_capital_A2" src="https://github.com/user-attachments/assets/a8c81208-aaa6-4e5d-841e-b9fa56bc7519" />
+<img width="961" height="383" alt="find_capital_A" src="https://github.com/user-attachments/assets/36eea185-b8d1-4501-8802-6dd30e98f0ba" />
+
+#### 5.6.3 Local File Inclusion (LFI) – Learn the Capital (Filter Bypass)
+
+#### Severity
+High
+
+#### CVSS v3.1 Score
+7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N)
+
+#### Affected Component
+Country selection functionality in “Learn the Capital – 3” using the `country` GET parameter.
+
+#### Description
+A Local File Inclusion (LFI) vulnerability was identified in the third variant of the “Learn the Capital” feature. This version attempts to implement input filtering to prevent arbitrary file inclusion.
+
+However, the filtering logic is improperly implemented and can be bypassed using crafted input. By abusing the file path structure, an attacker can traverse directories and include unauthorized local files, including administrative pages.
+
+Despite the presence of filtering, the application still processes attacker-controlled paths and includes unintended server-side files.
+
+#### Root Cause
+The application relies on insufficient blacklist-based filtering to prevent file inclusion attacks. The filtering logic fails to properly normalize and validate file paths before inclusion, allowing directory traversal sequences to bypass restrictions.
+
+The use of partial string checks instead of strict allow-list validation results in ineffective protection.
+
+#### Proof of Concept
+A normal request using a valid country value:
+
+GET /lab/file-inclusion/learn-the-capital-3/index.php?country=france.php
+
+pgsql
+Copy code
+
+By abusing the filter logic with a crafted path:
+
+GET /lab/file-inclusion/learn-the-capital-3/index.php?country=file/../../admin.php
+
+css
+Copy code
+
+The application successfully includes the administrative page and displays:
+
+Welcome to the Admin page..
+
+pgsql
+Copy code
+
+This confirms that the file inclusion filter can be bypassed.
+
+#### Impact
+- Unauthorized access to internal application files
+- Exposure of administrative functionality
+- Demonstrates ineffective security controls
+- Potential disclosure of sensitive source code or configuration files
+
+#### Recommendation
+- Do not rely on blacklist-based filtering for file inclusion protection
+- Implement strict allow-list validation for allowed file names
+- Resolve and normalize file paths before inclusion
+- Reject any input containing directory traversal patterns
+- Replace dynamic file inclusion with static routing logic
+<img width="923" height="819" alt="find_capital_B" src="https://github.com/user-attachments/assets/e4accf5c-04ff-4fa3-b083-d060973be9f3" />
