@@ -126,11 +126,9 @@ The application fails to properly sanitize or encode user input before reflectin
 GET /vulnerable-endpoint?input=<script>alert('2*3')</script> HTTP/1.1
 Host: target-application
 ```
-![Basic Reflected XSS – Payload Injection](screenshots/basic_reflt.png)
-
-![Basic Reflected XSS – Payload Injection](screenshots/basic_reflect1.png)
-
-![Basic Reflected XSS – JavaScript Execution](screenshots/basic_reflect2.png)
+<img width="948" height="521" alt="basic_reflect2" src="https://github.com/user-attachments/assets/d6618af5-65ea-41aa-96dc-36e38cf2598b" />
+<img width="573" height="374" alt="basic_reflect1" src="https://github.com/user-attachments/assets/630eb099-28b8-4509-a65f-4eaca6defda7" />
+<img width="1918" height="951" alt="basic_reflect" src="https://github.com/user-attachments/assets/4e5c38ba-ddbb-4bdb-9699-8509d020c8e1" />
 
 When the request is processed, the injected script is reflected in the response and executed in the browser.
 
@@ -174,11 +172,9 @@ An attacker submits the following payload through the chat input:
 ```html
 <script>alert('Stored XSS')</script>
 ```
-![Stored XSS – Payload Injection](screenshots/stored_mssg.png)
-
-![Stored XSS – Payload Stored in Chat](screenshots/stored_mssg1.png)
-
-![Stored XSS – JavaScript Execution for Other Users](screenshots/store_mssg2.png)
+<img width="958" height="407" alt="stored_mssg2" src="https://github.com/user-attachments/assets/c4cbf883-d022-4f5b-9755-50704f6f4068" />
+<img width="960" height="948" alt="stored_mssg1" src="https://github.com/user-attachments/assets/5c1c7d17-a6e5-4de6-915b-1a4552e907f3" />
+<img width="1920" height="1003" alt="stored_mssg" src="https://github.com/user-attachments/assets/485dbe33-de52-4692-874a-caff6b11719c" />
 
 Impact
 
@@ -219,12 +215,11 @@ An attacker supplies the following input in a vulnerable parameter:
 ```sql
 ' OR '1'='1' --
 ```
+<img width="953" height="381" alt="dom2" src="https://github.com/user-attachments/assets/988e04ab-a3a3-427d-88ff-6f223e8a9de7" />
+<img width="902" height="712" alt="dom1" src="https://github.com/user-attachments/assets/6413eafb-64bd-4260-ba1d-afe43863fc50" />
+<img width="1920" height="1034" alt="dom" src="https://github.com/user-attachments/assets/96612b8c-b841-4374-90af-b8957e9162e6" />
 
-![DOM-based XSS – Payload Injection](screenshots/dom.png)
 
-![DOM-based XSS – Client-Side Processing](screenshots/dom1.png)
-
-![DOM-based XSS – JavaScript Execution](screenshots/dom2.png)
 
 ### 5.1.4 Cross-Site Scripting (XSS)
 
@@ -252,11 +247,9 @@ An attacker supplies the following payload in a vulnerable parameter rendered in
 " onmouseover="alert('Attribute XSS')
 ```
 
-![HTML Attribute XSS – Payload Injection](screenshots/html_attribute_mani.png)
-
-![HTML Attribute XSS – Attribute Manipulation](screenshots/html_attribute_mani1.png)
-
-![HTML Attribute XSS – JavaScript Execution](screenshots/html_attribute_mani2.png)
+3<img width="1890" height="734" alt="html_attribute_mani2" src="https://github.com/user-attachments/assets/de2924b7-81d3-4167-85aa-5d8eebfba29c" />
+<img width="458" height="731" alt="html_attribute_mani1" src="https://github.com/user-attachments/assets/e61a4495-9a7a-4845-9291-68871796851f" />
+<img width="412" height="306" alt="html_attribute_mani" src="https://github.com/user-attachments/assets/b78a6a7b-442d-45f4-8bb7-927aef5b249a" />
 
 
 Impact
@@ -300,11 +293,8 @@ GET /lab/xss/our-gallery/?img=%22%20onerror%3Dalert(1)%20 HTTP/1.1
 Host: localhost:1337
 ```
 
-
-![HTML Attribute XSS – Payload Injection](screenshots/gallary_1.png)
-
-![HTML Attribute XSS – Attribute Manipulation](screenshots/gallary_2.png)
-
+<img width="960" height="402" alt="gallary_2" src="https://github.com/user-attachments/assets/98e7d1f8-7357-4335-b039-70703dfb6023" />
+<img width="1917" height="1034" alt="gallary_1" src="https://github.com/user-attachments/assets/45860370-003b-4478-8a07-d303f2edb998" />
 
 
 Impact
